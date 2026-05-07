@@ -12,12 +12,15 @@ PACKAGE_MODULES = [
     "medguard.safety",
 ]
 
-SKELETON_MODULES = [
+IMPLEMENTED_MODULES = [
     "medguard.data.nih",
-    "medguard.data.vindr",
-    "medguard.data.dicom",
     "medguard.data.transforms",
     "medguard.models.classifier",
+]
+
+SKELETON_MODULES = [
+    "medguard.data.vindr",
+    "medguard.data.dicom",
     "medguard.models.grounding",
     "medguard.models.vlm",
     "medguard.models.calibration",
@@ -34,7 +37,7 @@ SKELETON_MODULES = [
     "medguard.safety.model_card",
 ]
 
-MODULES = PACKAGE_MODULES + SKELETON_MODULES
+MODULES = PACKAGE_MODULES + IMPLEMENTED_MODULES + SKELETON_MODULES
 
 
 def test_import_medguard() -> None:
@@ -54,3 +57,10 @@ def test_skeleton_modules_are_not_available() -> None:
     for module_name in SKELETON_MODULES:
         module = importlib.import_module(module_name)
         assert module.is_available() is False
+
+
+def test_phase1_modules_are_available() -> None:
+    """Phase 1 modules advertise that real baseline logic is available."""
+    for module_name in IMPLEMENTED_MODULES:
+        module = importlib.import_module(module_name)
+        assert module.is_available() is True

@@ -1,0 +1,84 @@
+{
+  "mode": "smoke_no_dataset",
+  "reason": "Configured NIH dataset not found.",
+  "num_samples": 8,
+  "per_class": {
+    "Atelectasis": {
+      "auroc": 1.0,
+      "auprc": 1.0,
+      "sensitivity_at_90_specificity": 1.0
+    },
+    "Cardiomegaly": {
+      "auroc": 1.0,
+      "auprc": 1.0,
+      "sensitivity_at_90_specificity": 1.0
+    },
+    "Effusion": {
+      "auroc": 1.0,
+      "auprc": 1.0,
+      "sensitivity_at_90_specificity": 1.0
+    },
+    "Infiltration": {
+      "auroc": 1.0,
+      "auprc": 1.0,
+      "sensitivity_at_90_specificity": 1.0
+    },
+    "Mass": {
+      "auroc": 1.0,
+      "auprc": 1.0,
+      "sensitivity_at_90_specificity": 1.0
+    },
+    "Nodule": {
+      "auroc": 1.0,
+      "auprc": 1.0,
+      "sensitivity_at_90_specificity": 1.0
+    },
+    "Pneumonia": {
+      "auroc": 1.0,
+      "auprc": 1.0,
+      "sensitivity_at_90_specificity": 1.0
+    },
+    "Pneumothorax": {
+      "auroc": 1.0,
+      "auprc": 1.0,
+      "sensitivity_at_90_specificity": 1.0
+    },
+    "Consolidation": {
+      "auroc": 1.0,
+      "auprc": 1.0,
+      "sensitivity_at_90_specificity": 1.0
+    },
+    "Edema": {
+      "auroc": 1.0,
+      "auprc": 1.0,
+      "sensitivity_at_90_specificity": 1.0
+    },
+    "Emphysema": {
+      "auroc": 1.0,
+      "auprc": 1.0,
+      "sensitivity_at_90_specificity": 1.0
+    },
+    "Fibrosis": {
+      "auroc": 1.0,
+      "auprc": 1.0,
+      "sensitivity_at_90_specificity": 1.0
+    },
+    "Pleural_Thickening": {
+      "auroc": 1.0,
+      "auprc": 1.0,
+      "sensitivity_at_90_specificity": 1.0
+    },
+    "Hernia": {
+      "auroc": 1.0,
+      "auprc": 1.0,
+      "sensitivity_at_90_specificity": 1.0
+    }
+  },
+  "macro_auroc": 1.0,
+  "macro_auprc": 1.0,
+  "macro_sensitivity_at_90_specificity": 1.0,
+  "probability_source": "torch.sigmoid(raw_logits)",
+  "threshold_tuning": "none",
+  "label_quality": "NIH labels are noisy silver-standard NLP-mined labels.",
+  "localization": "not_evaluated_nih_image_level_labels_only"
+}

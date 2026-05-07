@@ -7,6 +7,9 @@ seed: 2026
 
 data:
   dataset: NIH ChestX-ray14
+  label_source: silver_standard_nlp_mined
+  labels_are_noisy: true
+  localization_ground_truth: none
   root: data/nih
   image_index_csv: Data_Entry_2017.csv
   train_val_list: train_val_list.txt
@@ -27,6 +30,12 @@ data:
     - Pleural_Thickening
     - Hernia
 
+split:
+  prefer_official_files: true
+  enforce_patient_disjoint: true
+  val_fraction: 0.1
+  test_fraction: 0.1
+
 preprocessing:
   image_size: 224
   channels: 3
@@ -43,6 +52,7 @@ preprocessing:
 model:
   architecture: densenet121
   pretrained: imagenet
+  allow_weight_download: false
   num_classes: 14
   output: raw_logits
 
@@ -56,6 +66,7 @@ optimizer:
   weight_decay: 0.0001
 
 training:
+  device: auto
   epochs: 20
   batch_size: 32
   mixed_precision: true
@@ -89,6 +100,8 @@ dataloader:
       persistent_workers: false
 
 evaluation:
+  device: auto
+  batch_size: 32
   metrics:
     - per_class_auroc
     - per_class_auprc
@@ -97,3 +110,8 @@ evaluation:
     - sensitivity_at_90_specificity
   output_json: results/baseline_nih_eval.json
 
+smoke:
+  samples: 8
+  eval_samples: 8
+  batch_size: 2
+  image_size: 64

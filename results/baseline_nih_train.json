@@ -1,0 +1,46 @@
+{
+  "mode": "smoke_no_dataset",
+  "device": "cpu",
+  "best": {
+    "epoch": 1,
+    "train_loss": 0.6964169889688492,
+    "loss": 0.7122121006250381,
+    "per_class_auroc": [
+      0.5625,
+      0.5,
+      0.8125,
+      0.3125,
+      0.5625,
+      0.4375,
+      0.5,
+      0.25,
+      0.5,
+      0.625,
+      0.625,
+      0.125,
+      0.75,
+      0.4375
+    ],
+    "macro_auroc": 0.5
+  },
+  "pos_weight_source": "computed_from_training_set",
+  "pos_weight_formula": "negative_count_c / positive_count_c",
+  "pos_weight": [
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0
+  ],
+  "label_quality": "NIH labels are noisy silver-standard NLP-mined labels.",
+  "localization": "not_applicable_nih_image_level_labels_only"
+}
