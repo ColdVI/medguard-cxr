@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import warnings
 from collections.abc import Mapping
 from typing import Any
 
@@ -71,6 +72,12 @@ def _resolve_densenet_weights(
     if pretrained in {False, None, "none", "random"}:
         return None
     if pretrained in {True, "imagenet"}:
-        return DenseNet121_Weights.DEFAULT if allow_weight_download else None
+        if allow_weight_download:
+            return DenseNet121_Weights.DEFAULT
+        warnings.warn(
+            "DenseNet121 configured as pretrained=imagenet but allow_weight_download=false; "
+            "using random initialization. This is suitable only for smoke/CI paths.",
+            stacklevel=2,
+        )
+        return None
     raise ValueError(f"Unsupported DenseNet121 pretrained setting: {pretrained}")
-

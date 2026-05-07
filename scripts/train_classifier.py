@@ -1,16 +1,12 @@
 """Train the Phase 1 NIH ChestX-ray14 multi-label classifier."""
 
-# ruff: noqa: E402, I001
-
 from __future__ import annotations
 
 import argparse
 import json
-import os
 import random
-import sys
-import tempfile
 from collections.abc import Mapping
+from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
@@ -20,22 +16,15 @@ import yaml
 from sklearn.metrics import roc_auc_score
 from torch.utils.data import DataLoader, Dataset
 
-ROOT = Path(__file__).resolve().parents[1]
-SRC = ROOT / "src"
-CACHE_ROOT = Path(tempfile.gettempdir()) / "medguard-cxr-cache"
-os.environ.setdefault("MPLCONFIGDIR", str(CACHE_ROOT / "matplotlib"))
-os.environ.setdefault("HF_HOME", str(CACHE_ROOT / "huggingface"))
-if str(SRC) not in sys.path:
-    sys.path.insert(0, str(SRC))
-
-from medguard.data.nih import (  # noqa: E402
+from medguard.data.nih import (
     DatasetUnavailableError,
     NIHChestXray14Dataset,
     compute_pos_weight,
     create_dataloader,
+    dataloader_kwargs,
     dataset_available,
 )
-from medguard.models.classifier import build_classifier, build_loss, probabilities_from_logits  # noqa: E402
+from medguard.models.classifier import build_classifier, build_loss, probabilities_from_logits
 
 
 class SyntheticCXRDataset(Dataset[dict[str, Any]]):
@@ -88,13 +77,16 @@ def main() -> None:
 
     no_data_smoke = not dataset_available(config)
     if no_data_smoke:
-        train_loader, val_loader, pos_weight = build_smoke_loaders(config)
+        runtime_config = smoke_model_config(config)
+        train_loader, val_loader, pos_weight = build_smoke_loaders(runtime_config)
         mode = "smoke_no_dataset"
     else:
-        train_loader, val_loader, pos_weight = build_nih_loaders(config)
+        runtime_config = config
+        warn_if_random_imagenet_init(runtime_config)
+        train_loader, val_loader, pos_weight = build_nih_loaders(runtime_config)
         mode = "nih"
 
-    model = build_classifier(config).to(device)
+    model = build_classifier(runtime_config).to(device)
     loss_fn = build_loss(pos_weight=pos_weight.to(device))
     optimizer = torch.optim.AdamW(
         model.parameters(),
@@ -131,7 +123,7 @@ def main() -> None:
             best_score = score_for_selection
             stale_epochs = 0
             best_report = {"epoch": epoch, "train_loss": train_loss, **val_report}
-            save_checkpoint(model, config, pos_weight, best_report)
+            save_checkpoint(model, runtime_config, pos_weight, best_report)
         else:
             stale_epochs += 1
             if stale_epochs >= patience:
@@ -207,8 +199,34 @@ def build_smoke_loaders(
         negative / positive.clamp_min(1.0),
         torch.ones_like(positive),
     )
-    loader = DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=0)
+    loader = DataLoader(
+        dataset,
+        batch_size=batch_size,
+        shuffle=False,
+        **dataloader_kwargs(config),
+    )
     return loader, loader, pos_weight.to(dtype=torch.float32)
+
+
+def smoke_model_config(config: Mapping[str, Any]) -> dict[str, Any]:
+    """Return a smoke-only runtime config that never downloads pretrained weights."""
+    runtime_config = deepcopy(dict(config))
+    model_cfg = dict(runtime_config.get("model", {}))
+    model_cfg["allow_weight_download"] = False
+    runtime_config["model"] = model_cfg
+    return runtime_config
+
+
+def warn_if_random_imagenet_init(config: Mapping[str, Any]) -> None:
+    """Warn when real-data training would silently fall back to random initialization."""
+    model_cfg = config.get("model", {})
+    pretrained = model_cfg.get("pretrained", "imagenet")
+    allow_weight_download = bool(model_cfg.get("allow_weight_download", False))
+    if pretrained == "imagenet" and not allow_weight_download:
+        print(
+            "WARNING: Real NIH training is configured with pretrained=imagenet but "
+            "allow_weight_download=false; DenseNet121 will be randomly initialized."
+        )
 
 
 def train_one_epoch(

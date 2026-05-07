@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import pytest
 import torch
 from torch import nn
 
@@ -42,3 +43,17 @@ def test_loss_is_bce_with_logits_and_sigmoid_is_explicit() -> None:
     assert loss.ndim == 0
     assert torch.all((probabilities >= 0.0) & (probabilities <= 1.0))
 
+
+def test_imagenet_without_download_warns_about_random_init() -> None:
+    """Real-data configs should not silently train random DenseNet121 by accident."""
+    config = {
+        "model": {
+            "architecture": "densenet121",
+            "pretrained": "imagenet",
+            "allow_weight_download": False,
+            "num_classes": 14,
+        }
+    }
+
+    with pytest.warns(UserWarning, match="random initialization"):
+        build_classifier(config)

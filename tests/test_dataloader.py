@@ -7,12 +7,14 @@ from pathlib import Path
 
 import pytest
 from PIL import Image
+from scripts.train_classifier import build_smoke_loaders
 
 from medguard.data.nih import (
     DatasetUnavailableError,
     NIHChestXray14Dataset,
     compute_pos_weight,
     create_dataloader,
+    dataset_available,
 )
 
 
@@ -73,6 +75,37 @@ def test_pos_weight_is_computed_from_training_labels(tmp_path: Path) -> None:
 
     assert pos_weight.tolist() == [1.0, 3.0]
     assert str(pos_weight.dtype) == "torch.float32"
+
+
+def test_dataset_available_requires_referenced_images(tmp_path: Path) -> None:
+    """Partial NIH downloads with metadata only fall back to smoke mode."""
+    root = tmp_path / "partial_nih"
+    root.mkdir()
+    with (root / "Data_Entry_2017.csv").open("w", newline="") as handle:
+        writer = csv.writer(handle)
+        writer.writerow(["Image Index", "Finding Labels", "Patient ID"])
+        writer.writerow(["missing.png", "Mass", "p1"])
+
+    config = {
+        "data": {
+            "root": str(root),
+            "image_index_csv": "Data_Entry_2017.csv",
+        }
+    }
+
+    with pytest.warns(UserWarning, match="metadata exists"):
+        assert dataset_available(config) is False
+
+
+def test_smoke_loader_uses_configured_dataloader_profile(tmp_path: Path) -> None:
+    """No-data smoke loaders still route through YAML DataLoader settings."""
+    config = make_tiny_nih_config(tmp_path)
+    config["smoke"] = {"samples": 4, "batch_size": 2, "image_size": 16}
+
+    train_loader, val_loader, _ = build_smoke_loaders(config)
+
+    assert train_loader.num_workers == 0
+    assert val_loader.num_workers == 0
 
 
 def test_official_split_patient_overlap_is_rejected(tmp_path: Path) -> None:

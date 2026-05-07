@@ -1,7 +1,7 @@
 project:
   name: medguard-cxr
-  phase: 0A
-  description: "NIH ChestX-ray14 baseline configuration placeholder."
+  phase: 1
+  description: "NIH ChestX-ray14 baseline configuration."
 
 seed: 2026
 
@@ -52,7 +52,7 @@ preprocessing:
 model:
   architecture: densenet121
   pretrained: imagenet
-  allow_weight_download: false
+  allow_weight_download: true
   num_classes: 14
   output: raw_logits
 

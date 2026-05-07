@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import csv
 import random
+import warnings
 from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
@@ -198,12 +199,7 @@ class NIHChestXray14Dataset(Dataset[dict[str, Any]]):
         )
 
     def _resolve_image_path(self, configured_path: Path, image_id: str) -> Path:
-        candidates = [
-            configured_path,
-            self.root / image_id,
-            self.root / "images" / image_id,
-        ]
-        for candidate in candidates:
+        for candidate in _image_candidates(self.root, image_id, configured_path):
             if candidate.exists():
                 return candidate
 
@@ -214,11 +210,28 @@ class NIHChestXray14Dataset(Dataset[dict[str, Any]]):
 
 
 def dataset_available(config: Mapping[str, Any]) -> bool:
-    """Return whether the configured NIH metadata exists locally."""
+    """Return whether configured NIH metadata and at least one image exist locally."""
     data_cfg = config.get("data", {})
     root = Path(data_cfg.get("root", "data/nih"))
     metadata = _resolve_under_root(root, data_cfg.get("image_index_csv", "Data_Entry_2017.csv"))
-    return metadata.exists()
+    if not metadata.exists():
+        return False
+
+    with metadata.open(newline="") as handle:
+        reader = csv.DictReader(handle)
+        for index, row in enumerate(reader):
+            if index >= 10:
+                break
+            image_id = _first_present(row, "Image Index", "image_id", "ImageID")
+            if _image_exists(root, image_id):
+                return True
+
+    warnings.warn(
+        f"NIH metadata exists at {metadata}, but no referenced images were found under "
+        f"{root} or {root / 'images'}. Falling back to smoke mode.",
+        stacklevel=2,
+    )
+    return False
 
 
 def create_dataloader(
@@ -351,6 +364,18 @@ def _read_split_ids(path: Path | None) -> set[str]:
     if path is None or not path.exists():
         return set()
     return {line.strip() for line in path.read_text().splitlines() if line.strip()}
+
+
+def _image_exists(root: Path, image_id: str) -> bool:
+    return any(candidate.exists() for candidate in _image_candidates(root, image_id))
+
+
+def _image_candidates(root: Path, image_id: str, configured_path: Path | None = None) -> list[Path]:
+    candidates = []
+    if configured_path is not None:
+        candidates.append(configured_path)
+    candidates.extend([root / image_id, root / "images" / image_id])
+    return candidates
 
 
 def _resolve_under_root(root: Path, path: str | Path) -> Path:

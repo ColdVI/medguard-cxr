@@ -4,10 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import random
-import sys
-import tempfile
 from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
@@ -17,21 +14,13 @@ import torch
 import yaml
 from sklearn.metrics import average_precision_score, roc_auc_score, roc_curve
 
-ROOT = Path(__file__).resolve().parents[1]
-SRC = ROOT / "src"
-CACHE_ROOT = Path(tempfile.gettempdir()) / "medguard-cxr-cache"
-os.environ.setdefault("MPLCONFIGDIR", str(CACHE_ROOT / "matplotlib"))
-os.environ.setdefault("HF_HOME", str(CACHE_ROOT / "huggingface"))
-if str(SRC) not in sys.path:
-    sys.path.insert(0, str(SRC))
-
-from medguard.data.nih import (  # noqa: E402
+from medguard.data.nih import (
     DatasetUnavailableError,
     NIHChestXray14Dataset,
     create_dataloader,
     dataset_available,
 )
-from medguard.models.classifier import build_classifier, probabilities_from_logits  # noqa: E402
+from medguard.models.classifier import build_classifier, probabilities_from_logits
 
 
 def parse_args() -> argparse.Namespace:
@@ -121,18 +110,34 @@ def evaluate_smoke(
     labels: list[str],
     reason: str = "Configured NIH dataset not found.",
 ) -> dict[str, Any]:
-    """Produce a deterministic smoke evaluation when no local NIH data exists."""
+    """Produce a no-data smoke report without synthetic performance metrics."""
     classes = int(config.get("model", {}).get("num_classes", len(labels) or 14))
     samples = max(4, int(config.get("smoke", {}).get("eval_samples", 8)))
-    label_rows = [[(row + col) % 2 for col in range(classes)] for row in range(samples)]
-    y_true = np.asarray(label_rows, dtype=np.float32)
-    logits = (y_true * 2.0 - 1.0) + np.linspace(-0.2, 0.2, samples, dtype=np.float32)[:, None]
-    y_prob = 1.0 / (1.0 + np.exp(-logits))
+    label_names = labels or [f"class_{index}" for index in range(classes)]
+    null_metrics = {
+        label: {
+            "auroc": None,
+            "auprc": None,
+            "sensitivity_at_90_specificity": None,
+        }
+        for label in label_names
+    }
     return {
+        "WARNING_DO_NOT_USE": "synthetic_smoke_only_not_a_real_evaluation",
         "mode": "smoke_no_dataset",
         "reason": reason,
         "num_samples": int(samples),
-        **classification_report(y_true, y_prob, labels),
+        "per_class": null_metrics,
+        "macro_auroc": None,
+        "macro_auroc_valid_class_count": 0,
+        "macro_auprc": None,
+        "macro_auprc_valid_class_count": 0,
+        "macro_sensitivity_at_90_specificity": None,
+        "macro_sensitivity_at_90_specificity_valid_class_count": 0,
+        "probability_source": "not_computed_smoke_mode",
+        "threshold_tuning": "none",
+        "label_quality": "NIH labels are noisy silver-standard NLP-mined labels.",
+        "localization": "not_evaluated_nih_image_level_labels_only",
     }
 
 
@@ -171,10 +176,13 @@ def classification_report(
     return {
         "per_class": per_class,
         "macro_auroc": float(np.mean(aurocs)) if aurocs else None,
+        "macro_auroc_valid_class_count": len(aurocs),
         "macro_auprc": float(np.mean(auprcs)) if auprcs else None,
+        "macro_auprc_valid_class_count": len(auprcs),
         "macro_sensitivity_at_90_specificity": (
             float(np.mean(sensitivities)) if sensitivities else None
         ),
+        "macro_sensitivity_at_90_specificity_valid_class_count": len(sensitivities),
         "probability_source": "torch.sigmoid(raw_logits)",
         "threshold_tuning": "none",
         "label_quality": "NIH labels are noisy silver-standard NLP-mined labels.",
