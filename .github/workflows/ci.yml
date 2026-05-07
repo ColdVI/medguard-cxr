@@ -20,4 +20,5 @@ jobs:
         run: |
           python -c "import medguard"
           python -m pytest tests/test_imports.py
-
+      - name: Lint
+        run: python -m ruff check src scripts app tests

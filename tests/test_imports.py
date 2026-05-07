@@ -2,8 +2,17 @@
 
 import importlib
 
-MODULES = [
+PACKAGE_MODULES = [
     "medguard",
+    "medguard.data",
+    "medguard.models",
+    "medguard.eval",
+    "medguard.explain",
+    "medguard.api",
+    "medguard.safety",
+]
+
+SKELETON_MODULES = [
     "medguard.data.nih",
     "medguard.data.vindr",
     "medguard.data.dicom",
@@ -25,6 +34,8 @@ MODULES = [
     "medguard.safety.model_card",
 ]
 
+MODULES = PACKAGE_MODULES + SKELETON_MODULES
+
 
 def test_import_medguard() -> None:
     """The top-level package imports cleanly."""
@@ -36,3 +47,10 @@ def test_import_skeleton_modules() -> None:
     """All skeleton modules import without optional runtime dependencies."""
     for module_name in MODULES:
         importlib.import_module(module_name)
+
+
+def test_skeleton_modules_are_not_available() -> None:
+    """Phase 0A placeholder modules advertise that real logic is not available."""
+    for module_name in SKELETON_MODULES:
+        module = importlib.import_module(module_name)
+        assert module.is_available() is False

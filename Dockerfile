@@ -16,6 +16,6 @@ WORKDIR /workspace
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 # GPU runtime dependency installation is intentionally deferred to later phases.
+# See DECISIONS.md for the Phase 0A review-fix deferral record.
 COPY . .
-CMD ["python3", "-c", "print('MEDGUARD-CXR GPU target placeholder')"]
-
+CMD ["bash", "-lc", "echo 'MEDGUARD-CXR GPU target placeholder; deferred until Phase 1'"]

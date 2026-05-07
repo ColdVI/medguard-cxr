@@ -23,15 +23,15 @@ TBD.
 ## Scorecard
 
 | Capability | Metric | Phase added | Target | Result |
-|------------|--------|-------------|--------|--------|
+|------------|--------|------------|--------|--------|
 | Multi-label classification | Macro AUROC | P1 | > 0.75 | TBD |
 | Rare finding detection | Macro AUPRC | P1 | > 0.30 | TBD |
-| Calibration | ECE down | P2 | < 0.10 | TBD |
+| Calibration | ECE ↓ | P2 | < 0.10 | TBD |
 | Selective prediction | Acc @ 20% abstention | P2 | > baseline | TBD |
 | Localization | Pointing game acc | P3 | > 0.50 | TBD |
-| Cross-dataset | Macro AUROC NIH to VinDr | P3 | report only | TBD |
+| Cross-dataset | Macro AUROC NIH→VinDr | P3 | report only | TBD |
 | VQA | Exact match | P4 | > 0.60 | TBD |
-| OOD rejection | Natural image rejected | P4 | pass | TBD |
+| OOD rejection | Cat photo rejected | P4 | pass | TBD |
 
 ## Repository Layout
 
@@ -75,4 +75,3 @@ TBD.
 ## Limitations
 
 TBD.
-
