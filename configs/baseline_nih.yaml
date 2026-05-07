@@ -1,0 +1,99 @@
+project:
+  name: medguard-cxr
+  phase: 0A
+  description: "NIH ChestX-ray14 baseline configuration placeholder."
+
+seed: 2026
+
+data:
+  dataset: NIH ChestX-ray14
+  root: data/nih
+  image_index_csv: Data_Entry_2017.csv
+  train_val_list: train_val_list.txt
+  test_list: test_list.txt
+  labels:
+    - Atelectasis
+    - Cardiomegaly
+    - Effusion
+    - Infiltration
+    - Mass
+    - Nodule
+    - Pneumonia
+    - Pneumothorax
+    - Consolidation
+    - Edema
+    - Emphysema
+    - Fibrosis
+    - Pleural_Thickening
+    - Hernia
+
+preprocessing:
+  image_size: 224
+  channels: 3
+  normalization:
+    active: imagenet
+    imagenet_mean: [0.485, 0.456, 0.406]
+    imagenet_std: [0.229, 0.224, 0.225]
+    torchxrayvision_mean: null
+    torchxrayvision_std: null
+  train_augmentations:
+    random_horizontal_flip: true
+    random_horizontal_flip_probability: 0.5
+
+model:
+  architecture: densenet121
+  pretrained: imagenet
+  num_classes: 14
+  output: raw_logits
+
+loss:
+  name: BCEWithLogitsLoss
+  pos_weight: auto_from_training_prevalence
+
+optimizer:
+  name: AdamW
+  learning_rate: 0.0001
+  weight_decay: 0.0001
+
+training:
+  epochs: 20
+  batch_size: 32
+  mixed_precision: true
+  gradient_clip_max_norm: 1.0
+  early_stopping:
+    monitor: val_macro_auroc
+    mode: max
+    patience: 5
+  checkpoint:
+    monitor: val_macro_auroc
+    mode: max
+    path: checkpoints/baseline_nih_best.pt
+
+dataloader:
+  active_profile: cpu_ci
+  profiles:
+    gpu:
+      num_workers: 4
+      pin_memory: true
+      prefetch_factor: 2
+      persistent_workers: true
+    cpu_ci:
+      num_workers: 0
+      pin_memory: false
+      prefetch_factor: null
+      persistent_workers: false
+    mac_mps:
+      num_workers: 0
+      pin_memory: false
+      prefetch_factor: null
+      persistent_workers: false
+
+evaluation:
+  metrics:
+    - per_class_auroc
+    - per_class_auprc
+    - macro_auroc
+    - macro_auprc
+    - sensitivity_at_90_specificity
+  output_json: results/baseline_nih_eval.json
+

@@ -1,0 +1,7 @@
+project:
+  name: medguard-cxr
+  phase: 3
+  description: "VinDr-CXR grounding configuration placeholder."
+
+status: not_implemented_until_phase_3
+

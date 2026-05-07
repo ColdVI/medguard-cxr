@@ -1,0 +1,7 @@
+project:
+  name: medguard-cxr
+  phase: 2
+  description: "Calibration configuration placeholder."
+
+status: not_implemented_until_phase_2
+

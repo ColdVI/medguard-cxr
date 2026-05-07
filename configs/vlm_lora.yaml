@@ -1,0 +1,7 @@
+project:
+  name: medguard-cxr
+  phase: 4
+  description: "VLM QLoRA configuration placeholder."
+
+status: not_implemented_until_phase_4
+

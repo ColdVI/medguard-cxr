@@ -1,0 +1,64 @@
+[build-system]
+requires = ["setuptools==75.8.0", "wheel==0.45.1"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "medguard-cxr"
+version = "0.0.0"
+description = "Research-only, safety-aware chest X-ray assistant skeleton."
+readme = "README.md"
+requires-python = ">=3.10,<3.14"
+license = { text = "Proprietary" }
+authors = [{ name = "Anil Keskin" }]
+dependencies = [
+    "accelerate==1.2.1",
+    "captum==0.7.0",
+    "fastapi==0.115.6",
+    "grad-cam==1.5.4",
+    "gradio==5.9.1",
+    "matplotlib==3.9.3",
+    "monai==1.4.0; python_version < '3.13'",
+    "monai==1.5.2; python_version >= '3.13'",
+    "numpy==1.26.4; python_version < '3.13'",
+    "numpy==2.2.6; python_version >= '3.13'",
+    "opencv-python-headless==4.10.0.84",
+    "pandas==2.2.3",
+    "peft==0.14.0",
+    "pillow==11.0.0",
+    "pydantic==2.10.4",
+    "pydicom==3.0.1",
+    "pyyaml==6.0.2",
+    "scikit-learn==1.6.0",
+    "torch==2.5.1; python_version < '3.13'",
+    "torchio==0.20.1; python_version < '3.13'",
+    "torchio==1.2.0; python_version >= '3.13'",
+    "torch==2.9.1; python_version >= '3.13'",
+    "torchvision==0.20.1; python_version < '3.13'",
+    "torchvision==0.24.1; python_version >= '3.13'",
+    "torchxrayvision==1.3.4",
+    "tqdm==4.67.1",
+    "transformers==4.47.1",
+    "uvicorn==0.34.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest==8.3.4",
+    "ruff==0.8.4",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+addopts = "-q"
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+src = ["src", "scripts", "app", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
