@@ -1,7 +1,76 @@
 project:
   name: medguard-cxr
   phase: 3
-  description: "VinDr-CXR grounding configuration placeholder."
+  description: "VinDr-CXR grounded localization configuration."
 
-status: not_implemented_until_phase_3
+seed: 2026
 
+data:
+  dataset: vindr-cxr
+  root: data/vindr
+  image_dir: images
+  annotations_csv: annotations.csv
+  manifest_csv: manifest.csv
+  bbox_format: pixel_xyxy
+  consensus:
+    strategy: iou_merge
+    iou_threshold: 0.40
+    min_annotators: 1
+    grid_size: 256
+  allow_empty_annotations: false
+  labels:
+    - Aortic enlargement
+    - Atelectasis
+    - Calcification
+    - Cardiomegaly
+    - Clavicle fracture
+    - Consolidation
+    - Edema
+    - Emphysema
+    - Enlarged PA
+    - ILD
+    - Infiltration
+    - Lung Opacity
+    - Lung cavity
+    - Lung cyst
+    - Mediastinal shift
+    - Nodule/Mass
+    - Pleural effusion
+    - Pleural thickening
+    - Pneumothorax
+    - Pulmonary fibrosis
+    - Rib fracture
+    - Other lesion
+
+split:
+  eval: test
+
+preprocessing:
+  image_size: 224
+  channels: 3
+  normalization:
+    active: imagenet
+    imagenet_mean: [0.485, 0.456, 0.406]
+    imagenet_std: [0.229, 0.224, 0.225]
+
+gradcam:
+  method: gradcam
+  secondary_method: gradcam_plus_plus
+  target_layer: last_conv_before_global_average_pooling
+  confidence_gate: 0.70
+  skip_abstained: true
+  cam_threshold: 0.60
+
+localization:
+  iou_threshold: 0.50
+  metrics:
+    - mean_iou
+    - map_at_0_5
+    - pointing_game_accuracy
+  outputs:
+    metrics_json: results/grounding_vindr_eval.json
+    overlay_dir: results/overlays
+    synthetic_overlay: results/overlays/grid.png
+
+safety:
+  note: "Grad-CAM heatmaps are engineering review artifacts only, not clinically validated evidence."

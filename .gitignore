@@ -13,6 +13,8 @@ results/*
 !results/*.json
 # allow Phase 2 published artifacts
 !results/*.png
+!results/overlays/
+!results/overlays/*.png
 !results/.gitkeep
 
 calibrators/*

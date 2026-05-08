@@ -15,22 +15,22 @@ PACKAGE_MODULES = [
 IMPLEMENTED_MODULES = [
     "medguard.data.nih",
     "medguard.data.transforms",
+    "medguard.data.vindr",
     "medguard.models.classifier",
     "medguard.models.calibration",
     "medguard.eval.calibration_metrics",
+    "medguard.eval.localization_metrics",
+    "medguard.explain.gradcam",
+    "medguard.explain.overlays",
     "medguard.safety.abstention",
 ]
 
 SKELETON_MODULES = [
-    "medguard.data.vindr",
     "medguard.data.dicom",
     "medguard.models.grounding",
     "medguard.models.vlm",
     "medguard.eval.classification_metrics",
-    "medguard.eval.localization_metrics",
     "medguard.eval.report",
-    "medguard.explain.gradcam",
-    "medguard.explain.overlays",
     "medguard.api.app",
     "medguard.api.schemas",
     "medguard.safety.ood",
