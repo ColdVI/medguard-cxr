@@ -1,7 +1,44 @@
 project:
   name: medguard-cxr
   phase: 2
-  description: "Calibration configuration placeholder."
+  description: "Calibration + abstention configuration."
 
-status: not_implemented_until_phase_2
+seed: 2026
 
+baseline_config: configs/baseline_nih.yaml
+
+calibration:
+  method: temperature
+  n_bins: 15
+  binning: equal_width
+  fit_split: val
+  output:
+    pickle: calibrators/nih_temp_scaling.pkl
+    json: calibrators/nih_temp_scaling.json
+    report: results/calibration_report.json
+    diagram: results/reliability_diagram.png
+
+abstention:
+  default:
+    tau_lo: 0.30
+    tau_hi: 0.70
+  rare_classes:
+    Pneumothorax:
+      tau_lo: 0.20
+      tau_hi: 0.50
+    Mass:
+      tau_lo: 0.20
+      tau_hi: 0.55
+    Nodule:
+      tau_lo: 0.20
+      tau_hi: 0.55
+  selective_risk_n_points: 21
+
+smoke:
+  alpha: 0.5
+  val_samples: 768
+  test_samples: 768
+  prevalence:
+    default: 0.05
+    common: [Atelectasis, Cardiomegaly, Effusion, Infiltration]
+    common_value: 0.20
