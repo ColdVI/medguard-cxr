@@ -11,10 +11,19 @@ dist/
 
 results/*
 !results/*.json
+# allow Phase 2 published artifacts
+!results/*.png
 !results/.gitkeep
 
 calibrators/*
 !calibrators/.gitkeep
+# allow Phase 2 published artifacts
+!calibrators/nih_temp_scaling.pkl
+!calibrators/nih_temp_scaling.json
+!calibrators/nih_isotonic.pkl
+!calibrators/nih_isotonic.json
+!calibrators/nih_platt.pkl
+!calibrators/nih_platt.json
 
 checkpoints/
 data/nih/
@@ -25,4 +34,7 @@ data/vindr/
 *.pth
 *.ckpt
 *.pkl
-
+# allow Phase 2 calibrator pickle artifacts after the global *.pkl rule
+!calibrators/nih_temp_scaling.pkl
+!calibrators/nih_isotonic.pkl
+!calibrators/nih_platt.pkl

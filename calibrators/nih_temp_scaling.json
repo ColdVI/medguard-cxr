@@ -1,0 +1,38 @@
+{
+  "method": "temperature",
+  "classes": [
+    "Atelectasis",
+    "Cardiomegaly",
+    "Effusion",
+    "Infiltration",
+    "Mass",
+    "Nodule",
+    "Pneumonia",
+    "Pneumothorax",
+    "Consolidation",
+    "Edema",
+    "Emphysema",
+    "Fibrosis",
+    "Pleural_Thickening",
+    "Hernia"
+  ],
+  "temperatures": [
+    0.9482091079229159,
+    0.9572620378153375,
+    1.075257512010932,
+    0.7936689313913026,
+    0.9508982237800068,
+    1.0394551191950625,
+    0.9819976788096273,
+    1.0082981772553856,
+    1.2796555366545976,
+    0.965743149293753,
+    1.0145779278306697,
+    0.992356955814473,
+    1.0055306021021648,
+    0.983417711086955
+  ],
+  "degenerate_classes": [],
+  "n_fit_samples": 768,
+  "fit_split_hash": "b342212ffc5e8b710311ee2534fa390188559de9e625c87fb577c5c690fb0965"
+}
