@@ -20,7 +20,11 @@ TBD.
 
 ## Preprocessing
 
-TBD.
+RSNA bounding boxes are parsed from `x, y, width, height` pixel coordinates and
+stored as normalized `xyxy` boxes in `[0, 1]`. Public RSNA train labels are split
+deterministically by `patientId`; hidden challenge test labels are not used.
+Negative RSNA rows are retained for Phase 3R binary Pneumonia/Lung Opacity
+classification metrics and carry no localization boxes.
 
 ## Recommended Uses
 

@@ -57,7 +57,16 @@ TBD.
 
 ## Evaluation
 
-TBD.
+Phase 3R adds RSNA Pneumonia Detection Challenge 2018 validation for the single
+approved cross-dataset localization bridge: NIH `Pneumonia` probability against
+RSNA `Lung Opacity` labels and boxes. The current generated report is
+`results/grounding_rsna_eval.json`.
+
+Current Phase 3R report scope: 1024 validation records from the deterministic
+RSNA split, including 237 positive and 787 negative cases. The report is marked
+`WARNING_DO_NOT_USE` because the available NIH classifier checkpoint is
+smoke-trained; the numbers validate the plumbing and data alignment only, not
+clinical or model quality.
 
 ## Calibration and Abstention
 

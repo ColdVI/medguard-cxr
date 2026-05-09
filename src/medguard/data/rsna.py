@@ -170,8 +170,10 @@ class RSNAPneumoniaDataset(Dataset[dict[str, Any]]):
             [self.labels.index(label) for label in labels],
             dtype=torch.long,
         )
+        binary_label = torch.tensor(float(len(record.boxes) > 0), dtype=torch.float32)
         return {
             "image": transformed,
+            "label": binary_label,
             "image_id": record.image_id,
             "patient_id": record.patient_id,
             "path": str(record.path),

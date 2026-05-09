@@ -12,15 +12,15 @@ data:
   labels_csv: stage_2_train_labels.csv
   detailed_class_info_csv: stage_2_detailed_class_info.csv
   manifest_csv:
-  include_negative: false
+  include_negative: true
   labels:
     - Lung Opacity
 
 split:
   eval: val
-  val_fraction: 0.20
-  test_fraction: 0.00
-  note: "RSNA public train labels are split deterministically by patientId; hidden Kaggle test labels are not used."
+  val_fraction: 0.10
+  test_fraction: 0.10
+  note: "RSNA public train labels are split deterministically by patientId into train/val/test; hidden Kaggle test labels are not used."
 
 preprocessing:
   image_size: 224
@@ -48,7 +48,7 @@ gradcam:
 localization:
   iou_threshold: 0.50
   evaluation:
-    max_samples: all
+    max_samples: 1024
     overlay_count: 20
   metrics:
     - mean_iou

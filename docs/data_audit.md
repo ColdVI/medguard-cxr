@@ -51,9 +51,16 @@ for this course project.
 * Treat RSNA as a pneumonia/lung-opacity localization benchmark only.
 * Map NIH `Pneumonia` to RSNA `Lung Opacity`; leave all other NIH labels
   unmapped rather than reporting silent zeros.
-* Use deterministic patient-level train/val partitioning of public labeled
+* Use deterministic patient-level train/val/test partitioning of public labeled
   training rows unless an explicit manifest is supplied.
 * Do not use Kaggle hidden test rows for tuning or model selection.
+
+**Phase 3R status:**
+The current RSNA validation report uses a bounded validation subset with both
+positive and negative RSNA rows so that Pneumonia AUROC/AUPRC can be computed.
+Because the available NIH checkpoint is smoke-trained, the report is marked
+`WARNING_DO_NOT_USE` and must be read as pipeline validation rather than model
+performance evidence.
 
 **Phase 4 gate:**
 Synthetic overlays are still insufficient for model-quality claims. A real RSNA

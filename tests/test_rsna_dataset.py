@@ -2,14 +2,19 @@
 
 from pathlib import Path
 
+import numpy as np
+import pydicom
 import yaml
 from PIL import Image
+from pydicom.dataset import FileDataset, FileMetaDataset
+from pydicom.uid import ExplicitVRLittleEndian, SecondaryCaptureImageStorage
 
 from medguard.data.rsna import (
     NIH_TO_RSNA_LABELS,
     RSNAPneumoniaDataset,
     dataset_available,
     normalize_rsna_bbox,
+    read_rsna_image,
     rsna_labels_for_nih_label,
 )
 
@@ -43,6 +48,7 @@ def test_rsna_dataset_loads_positive_boxes_and_dimensions(tmp_path: Path) -> Non
     assert dataset.records[0].boxes[0].bbox == (0.1, 0.1, 0.5, 0.6)
     sample = dataset[0]
     assert sample["image_id"] == "case_001"
+    assert sample["label"].item() == 1.0
     assert sample["boxes"].shape == (1, 4)
     assert sample["box_labels"] == ["Lung Opacity"]
     assert sample["image"].shape == (1, 10, 20)
@@ -88,7 +94,34 @@ def test_rsna_dataset_can_include_negative_rows_explicitly(tmp_path: Path) -> No
     )
 
     assert dataset.records[0].boxes == ()
+    assert dataset[0]["label"].item() == 0.0
     assert dataset[0]["boxes"].shape == (0, 4)
+
+
+def test_rsna_loader_reads_dicom_dimensions_and_pixels(tmp_path: Path) -> None:
+    """RSNA DICOM images are read as grayscale while preserving dimensions."""
+
+    root = tmp_path / "rsna"
+    image_dir = root / "stage_2_train_images"
+    image_dir.mkdir(parents=True)
+    _write_dicom(image_dir / "case_001.dcm", width=20, height=10)
+    (root / "stage_2_train_labels.csv").write_text(
+        "patientId,x,y,width,height,Target\ncase_001,2,1,8,5,1\n",
+        encoding="utf-8",
+    )
+    (root / "stage_2_detailed_class_info.csv").write_text(
+        "patientId,class\ncase_001,Lung Opacity\n",
+        encoding="utf-8",
+    )
+    (root / "manifest.csv").write_text("patientId,split\ncase_001,val\n", encoding="utf-8")
+
+    dataset = RSNAPneumoniaDataset(root=root, manifest_csv="manifest.csv", split="val")
+    image = read_rsna_image(dataset.records[0].path)
+
+    assert dataset.records[0].width == 20
+    assert dataset.records[0].height == 10
+    assert image.size == (20, 10)
+    assert dataset[0]["image"].shape == (1, 10, 20)
 
 
 def test_rsna_dataset_available_requires_csv_and_image(tmp_path: Path) -> None:
@@ -148,3 +181,25 @@ def _write_rsna_fixture(
         encoding="utf-8",
     )
     return root
+
+
+def _write_dicom(path: Path, width: int, height: int) -> None:
+    file_meta = FileMetaDataset()
+    file_meta.MediaStorageSOPClassUID = SecondaryCaptureImageStorage
+    file_meta.MediaStorageSOPInstanceUID = pydicom.uid.generate_uid()
+    file_meta.TransferSyntaxUID = ExplicitVRLittleEndian
+    file_meta.ImplementationClassUID = pydicom.uid.generate_uid()
+    dataset = FileDataset(str(path), {}, file_meta=file_meta, preamble=b"\0" * 128)
+    dataset.SOPClassUID = file_meta.MediaStorageSOPClassUID
+    dataset.SOPInstanceUID = file_meta.MediaStorageSOPInstanceUID
+    dataset.Modality = "DX"
+    dataset.Rows = height
+    dataset.Columns = width
+    dataset.SamplesPerPixel = 1
+    dataset.PhotometricInterpretation = "MONOCHROME2"
+    dataset.BitsAllocated = 8
+    dataset.BitsStored = 8
+    dataset.HighBit = 7
+    dataset.PixelRepresentation = 0
+    dataset.PixelData = np.arange(width * height, dtype=np.uint8).reshape(height, width).tobytes()
+    dataset.save_as(path, write_like_original=False)

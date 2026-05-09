@@ -29,7 +29,11 @@ VinDr-CXR is deferred future work only and is not an active dependency.
 
 ## Metrics
 
-TBD.
+Phase 3R produces `results/grounding_rsna_eval.json` with RSNA binary
+Pneumonia/Lung Opacity classification metrics and weak Grad-CAM localization
+metrics. The current report is explicitly marked `WARNING_DO_NOT_USE` because
+the available classifier checkpoint is smoke-trained; these values are not
+clinical-performance evidence and should not be used as a model card score.
 
 ## Calibration
 
