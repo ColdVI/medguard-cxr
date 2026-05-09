@@ -1,4 +1,4 @@
-.PHONY: install prepare-nih prepare-vindr prepare-rsna train eval eval-grounding-rsna calibrate test demo lint
+.PHONY: install prepare-nih prepare-vindr prepare-rsna train eval eval-grounding-rsna calibrate vqa-dataset train-vlm serve-api test demo lint
 
 PYTHON ?= python3
 PIP ?= $(PYTHON) -m pip
@@ -26,6 +26,15 @@ eval-grounding-rsna:
 
 calibrate:
 	$(PYTHON) scripts/calibrate.py --config configs/calibration.yaml
+
+vqa-dataset:
+	$(PYTHON) scripts/generate_vqa_dataset.py --input-manifest data/sample_manifest.csv
+
+train-vlm:
+	$(PYTHON) scripts/train_vlm_lora.py --config configs/vlm_lora.yaml
+
+serve-api:
+	$(PYTHON) -m uvicorn medguard.api.app:app --host 127.0.0.1 --port 8080
 
 test:
 	$(PYTHON) -m pytest

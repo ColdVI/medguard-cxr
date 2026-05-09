@@ -117,16 +117,17 @@ def test_nih_to_rsna_mapping_is_explicit() -> None:
     assert NIH_TO_RSNA_LABELS["Pneumothorax"] == []
 
 
-def test_grounding_rsna_config_keeps_phase4_blocked_until_real_audit() -> None:
-    """The RSNA fallback still requires a real-data visual audit before Phase 4."""
+def test_grounding_rsna_config_records_active_real_audit_gate() -> None:
+    """The RSNA config records the real-data audit gate."""
 
     config = yaml.safe_load(Path("configs/grounding_rsna.yaml").read_text(encoding="utf-8"))
     gate = config["phase_gate"]
 
-    assert gate["phase4_entry_status"] == "blocked_until_real_localization_audit"
+    assert gate["phase4_entry_status"] == "conditional_go_after_rsna_real_overlay_audit"
     assert gate["require_real_localization_before_phase4"] is True
     assert gate["synthetic_smoke_is_blocking_for_phase4"] is True
     assert "rsna-pneumonia-detection" in gate["accepted_real_localization_datasets"]
+    assert gate["accepted_real_localization_datasets"] == ["rsna-pneumonia-detection"]
 
 
 def _write_rsna_fixture(

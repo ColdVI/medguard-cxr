@@ -1,4 +1,4 @@
-"""Phase 3 tests for VinDr-CXR dataset parsing."""
+"""Phase 3 tests for deferred VinDr-CXR dataset parsing."""
 
 from pathlib import Path
 
@@ -178,13 +178,15 @@ def test_vindr_dataset_available_requires_image_and_annotation(tmp_path: Path) -
 
 
 def test_grounding_config_blocks_phase4_until_real_localization_audit() -> None:
-    """Owner gate requires real localization evidence before Phase 4 starts."""
+    """VinDr config is retained only as deferred future work."""
 
     config = yaml.safe_load(Path("configs/grounding_vindr.yaml").read_text(encoding="utf-8"))
+    project = config["project"]
     gate = config["phase_gate"]
 
-    assert gate["phase4_entry_status"] == "blocked_until_real_localization_audit"
-    assert gate["require_real_localization_before_phase4"] is True
+    assert project["status"] == "deferred_future_work"
+    assert project["active_dependency"] is False
+    assert gate["phase4_entry_status"] == "deferred_not_phase4_gate"
+    assert gate["require_real_localization_before_phase4"] is False
     assert gate["synthetic_smoke_is_blocking_for_phase4"] is True
-    assert "vindr-cxr" in gate["accepted_real_localization_datasets"]
-    assert "rsna-pneumonia-detection" in gate["accepted_real_localization_datasets"]
+    assert gate["accepted_real_localization_datasets"] == ["vindr-cxr"]

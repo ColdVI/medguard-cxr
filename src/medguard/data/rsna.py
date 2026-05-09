@@ -1,9 +1,8 @@
 """RSNA Pneumonia Detection localization dataset utilities.
 
-This Phase 3 adapter provides a lower-friction real localization path when
-VinDr-CXR is not locally available. It treats RSNA pneumonia boxes as
-engineering localization ground truth for lung opacity only; it does not make
-clinical claims and it does not replace a later VinDr audit.
+This Phase 3 adapter is the active localization path. It treats RSNA pneumonia
+boxes as engineering localization ground truth for lung opacity only; it does
+not make clinical claims or score other NIH findings as localization targets.
 """
 
 from __future__ import annotations

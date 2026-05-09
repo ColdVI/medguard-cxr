@@ -23,7 +23,15 @@ IMPLEMENTED_MODULES = [
     "medguard.eval.localization_metrics",
     "medguard.explain.gradcam",
     "medguard.explain.overlays",
+    "medguard.api.app",
+    "medguard.api.middleware",
+    "medguard.api.schemas",
     "medguard.safety.abstention",
+    "medguard.safety.ood",
+    "medguard.safety.question_filter",
+    "medguard.vqa",
+    "medguard.vqa.rule_based",
+    "medguard.vqa.templates",
 ]
 
 SKELETON_MODULES = [
@@ -32,9 +40,6 @@ SKELETON_MODULES = [
     "medguard.models.vlm",
     "medguard.eval.classification_metrics",
     "medguard.eval.report",
-    "medguard.api.app",
-    "medguard.api.schemas",
-    "medguard.safety.ood",
     "medguard.safety.model_card",
 ]
 

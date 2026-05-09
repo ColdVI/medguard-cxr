@@ -1,4 +1,9 @@
-"""VinDr-CXR localization dataset utilities for Phase 3."""
+"""DEFERRED FUTURE USE: optional VinDr-CXR loader, not the active pipeline.
+
+RSNA Pneumonia Detection Challenge 2018 is the current localization/evidence
+dataset. This module is retained so a future VinDr access grant can reactivate
+the path deliberately, with a fresh data audit and owner approval.
+"""
 
 from __future__ import annotations
 
@@ -16,6 +21,7 @@ from torch.utils.data import Dataset
 from medguard.data.transforms import build_image_transform
 
 PHASE = "3"
+DEFERRED_FUTURE_WORK = True
 
 VINDR_LOCAL_LABELS = [
     "Aortic enlargement",

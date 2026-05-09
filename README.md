@@ -29,7 +29,7 @@ TBD.
 | Calibration | ECE ↓ | P2 | < 0.10 | TBD |
 | Selective prediction | Acc @ 20% abstention | P2 | > baseline | TBD |
 | Localization | Pointing game acc | P3 | > 0.50 | TBD |
-| Cross-dataset | Macro AUROC NIH→VinDr | P3 | report only | TBD |
+| Cross-dataset localization | NIH Pneumonia→RSNA Lung Opacity pointing/IoU | P3 | report only | TBD (smoke) |
 | VQA | Exact match | P4 | > 0.60 | TBD |
 | OOD rejection | Cat photo rejected | P4 | pass | TBD |
 
@@ -46,7 +46,10 @@ make test
 
 ## Data Preparation
 
-TBD.
+The active localization dataset is RSNA Pneumonia Detection Challenge 2018.
+Only NIH `Pneumonia` maps to RSNA `Lung Opacity`; all other NIH labels are not
+applicable for RSNA localization. VinDr-CXR is deferred future work only and is
+not an active pipeline dependency.
 
 ## Training
 
@@ -66,7 +69,8 @@ TBD.
 
 ## Demo
 
-TBD.
+Phase 4A ships a local rule-based VQA/API/Gradio demo. It runs in smoke mode by
+default and must not be interpreted as real model performance.
 
 ## Reproducibility
 

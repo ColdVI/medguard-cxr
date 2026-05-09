@@ -30,7 +30,7 @@
 | C3 | Every prediction must expose a confidence/uncertainty value. | v0.1+ |
 | C4 | Every **displayed** positive prediction must have visual evidence (CAM/bbox). | Demo/UI only in v0.1; all outputs in v0.3 |
 | C5 | Evaluation must include calibration metrics, not only AUROC. | v0.2+ |
-| C6 | At least one cross-dataset test (train NIH → eval VinDr or vice versa). | v0.2+ |
+| C6 | At least one cross-dataset localization test: NIH Pneumonia → RSNA Lung Opacity. | v0.2+ |
 | C7 | Reproducibility: fixed seeds + config YAML minimum. MLflow/W&B added in v0.2. | v0.1+ |
 | C8 | No patient data. Public / de-identified datasets only. | All phases |
 
@@ -48,7 +48,7 @@ No model silently rewrites another model's primary file.
 | File / Area | Primary Owner | Reviewer |
 |-------------|--------------|---------|
 | Repo skeleton, Makefile, Docker, CI | Codex | Claude |
-| `data/nih.py`, `data/vindr.py`, `data/dicom.py`, `data/transforms.py` | Codex | Claude |
+| `data/nih.py`, `data/rsna.py`, `data/dicom.py`, `data/transforms.py` | Codex | Claude |
 | `models/classifier.py` (architecture, loss) | Codex | Claude |
 | `models/calibration.py` (temperature, isotonic) | **Claude** | Codex |
 | `models/vlm.py` (QLoRA wiring, training loop) | Codex | Claude |
@@ -132,7 +132,7 @@ Deliverables:
 - [ ] Full repo skeleton matching Section 6 exactly (empty files with docstrings)
 - [ ] `pyproject.toml` with all dependencies pinned
 - [ ] `configs/baseline_nih.yaml` with all hyperparameters (no hardcoding)
-- [ ] `Makefile` targets: `install`, `prepare-nih`, `prepare-vindr`, `train`, `eval`, `calibrate`, `test`, `demo`, `lint`
+- [ ] `Makefile` targets: `install`, `prepare-nih`, `prepare-rsna`, `train`, `eval`, `calibrate`, `test`, `demo`, `lint`
 - [ ] `Dockerfile` with CPU and GPU targets
 - [ ] `.github/workflows/ci.yml`: import smoke test on CPU only
 - [ ] `DECISIONS.md` initialized (empty log)
@@ -269,15 +269,22 @@ Handoff: → Codex for Phase 3.
 
 ---
 
-### PHASE 3 — Grounded Localization (VinDr-CXR)
+### PHASE 3 — Grounded Localization (RSNA Pneumonia Detection Challenge 2018)
 **Owner: GPT-5.5 Codex**
 **Entry condition: Phase 2 exit conditions met.**
 
+VinDr-CXR is deferred future work only. VinDr files may remain in the repo as
+flagged optional scaffolding, but Phase 3/4 deliverables must not depend on
+VinDr unless the owner explicitly reactivates it in a new phase.
+
 Deliverables:
-- [ ] `src/medguard/data/vindr.py`
-  - 22 local abnormality labels + bounding box annotations
-  - Consensus bbox from 17 radiologist annotations (majority vote or IoU merge)
-  - Bounding boxes normalized to [0,1] relative to image size
+- [ ] `src/medguard/data/rsna.py`
+  - RSNA Pneumonia Detection Challenge 2018 image paths and bounding box annotations
+  - Supports the single active localization target: `Lung Opacity`
+  - Explicit mapping: NIH `Pneumonia` → RSNA `Lung Opacity`
+  - All other NIH labels are unmapped for RSNA localization and must report null / not applicable
+  - RSNA `x, y, width, height` pixel boxes normalized to `[0,1]` `xyxy` relative to image size
+  - Hidden Kaggle test labels must not be used
 - [ ] `src/medguard/explain/gradcam.py`
   - GradCAM targeting last conv layer before global average pool
   - GradCAM++ as secondary option
@@ -294,7 +301,9 @@ Deliverables:
 - [ ] Sample overlay images in `notebooks/02_baseline_results.ipynb`
 
 **Critical notes:**
-- VinDr bboxes are in DICOM pixel space. Normalize before IoU.
+- RSNA boxes are pixel-space `x, y, width, height`. Convert to normalized `xyxy` before IoU.
+- Do not treat NIH labels other than `Pneumonia` as RSNA localization ground truth.
+- Do not use hidden challenge test labels or tune on test data.
 - GradCAM target: last conv layer, NOT the FC head.
 - Do NOT run GradCAM on every prediction. Gate on confidence threshold.
 
@@ -303,7 +312,7 @@ Exit condition (REQUIRED):
 - Sample overlays visually inspectable (not obviously broken)
 
 Exit condition (TARGET — not a blocker):
-- Pointing game accuracy > 0.50 on VinDr val set
+- Pointing game accuracy > 0.50 on RSNA validation split for `Lung Opacity`
 
 Handoff: → Gemini for Phase 3B visual audit.
 
@@ -399,7 +408,7 @@ If two models disagree on implementation of a shared file:
 medguard-cxr/
 ├── configs/
 │   ├── baseline_nih.yaml
-│   ├── grounding_vindr.yaml
+│   ├── grounding_rsna.yaml
 │   ├── vlm_lora.yaml
 │   └── calibration.yaml
 ├── data/
@@ -411,7 +420,7 @@ medguard-cxr/
 │   ├── __init__.py
 │   ├── data/
 │   │   ├── nih.py
-│   │   ├── vindr.py
+│   │   ├── rsna.py
 │   │   ├── dicom.py
 │   │   └── transforms.py
 │   ├── models/
@@ -436,7 +445,7 @@ medguard-cxr/
 │       └── model_card.py
 ├── scripts/
 │   ├── prepare_nih.py
-│   ├── prepare_vindr.py
+│   ├── prepare_rsna.py
 │   ├── generate_vqa_dataset.py
 │   ├── train_classifier.py
 │   ├── train_vlm_lora.py
@@ -472,7 +481,7 @@ medguard-cxr/
 | Medical preprocessing | MONAI, TorchIO, pydicom | pin in pyproject.toml |
 | Baseline reference | TorchXRayVision | pin |
 | Main CV backbone | DenseNet121 (default), EfficientNet/ViT (ablation) | pin torchvision |
-| Localization | VinDr-CXR bbox + pytorch-grad-cam | pin |
+| Localization | RSNA Pneumonia Detection bbox + pytorch-grad-cam | pin |
 | VLM | Qwen2.5-VL-3B-Instruct + QLoRA via PEFT | pin |
 | Training | PyTorch Lightning or Accelerate | pin |
 | Experiment tracking | v0.1: config YAML + fixed seeds; v0.2+: MLflow or W&B | — |
@@ -497,7 +506,7 @@ Fill this as phases complete. Commit updated scorecard after each phase.
 | Calibration | ECE ↓ | P2 | < 0.10 | TBD |
 | Selective prediction | Acc @ 20% abstention | P2 | > baseline | TBD |
 | Localization | Pointing game acc | P3 | > 0.50 | TBD |
-| Cross-dataset | Macro AUROC NIH→VinDr | P3 | report only | TBD |
+| Cross-dataset localization | NIH Pneumonia→RSNA Lung Opacity pointing/IoU | P3 | report only | TBD |
 | VQA | Exact match | P4 | > 0.60 | TBD |
 | OOD rejection | Cat photo rejected | P4 | pass | TBD |
 

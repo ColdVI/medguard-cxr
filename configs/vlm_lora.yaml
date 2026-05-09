@@ -1,7 +1,39 @@
 project:
   name: medguard-cxr
   phase: 4
-  description: "VLM QLoRA configuration placeholder."
+  description: "VQA + safety-aware assistant configuration."
 
-status: not_implemented_until_phase_4
+seed: 2026
+mode: rule_based
 
+vqa:
+  templates_version: "v1"
+  n_distractors_per_image: 2
+  include_uncertain: true
+  output:
+    train_jsonl: data/vqa/synthetic_qa.train.jsonl
+    val_jsonl: data/vqa/synthetic_qa.val.jsonl
+    test_jsonl: data/vqa/synthetic_qa.test.jsonl
+
+vlm:
+  base_model: "Qwen/Qwen2.5-VL-3B-Instruct"
+  load_in_4bit: true
+  lora:
+    r: 16
+    alpha: 32
+    target_modules: ["q_proj", "k_proj", "v_proj", "o_proj"]
+    dropout: 0.05
+  training:
+    epochs: 3
+    batch_size: 4
+    grad_accum: 4
+    learning_rate: 2.0e-4
+    warmup_steps: 100
+    max_seq_length: 512
+
+safety:
+  banner_text: "constant in code; do not override here"
+  enforce_disclaimer: true
+  enforce_provenance: true
+  reject_on_clinical_token: true
+  hallucination_filter: true

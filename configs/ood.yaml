@@ -1,0 +1,6 @@
+ood:
+  blank_std_threshold: 0.02
+  noise_low_freq_ratio_min: 0.40
+  natural_color_max_mean: 5.0
+  natural_edge_chi2_max: 1.0
+  view_classifier_path: null

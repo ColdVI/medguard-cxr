@@ -1,8 +1,8 @@
 """Evaluate Phase 3 Grad-CAM localization on a configured real dataset.
 
-The RSNA path is intended as a course-friendly real-image localization audit
-when VinDr-CXR is unavailable. Reports explicitly mark smoke-trained
-checkpoints so outputs are not mistaken for model-quality evidence.
+The RSNA path is the active real-image localization audit for NIH Pneumonia
+mapped to RSNA Lung Opacity. Reports explicitly mark smoke-trained checkpoints
+so outputs are not mistaken for model-quality evidence.
 """
 
 from __future__ import annotations

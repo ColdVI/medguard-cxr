@@ -1,0 +1,15 @@
+api:
+  host: "127.0.0.1"
+  port: 8080
+  audit_log_path: logs/api_audit.jsonl
+  cors_allow_origins: []
+  middleware:
+    - disclaimer
+    - provenance
+    - audit_log
+
+gradio:
+  host: "127.0.0.1"
+  port: 7860
+  examples_dir: examples
+  show_smoke_subscript_when_smoke: true
