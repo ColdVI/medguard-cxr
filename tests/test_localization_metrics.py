@@ -7,6 +7,8 @@ from medguard.eval.localization_metrics import (
     average_precision_records_at_iou,
     box_iou,
     cam_to_bbox,
+    heatmap_border_fraction,
+    heatmap_peak_in_border,
     mean_average_precision_at_iou,
     per_image_recall_at_iou,
     pointing_game_hit,
@@ -47,6 +49,17 @@ def test_pointing_game_hit_accepts_multiple_gt_boxes() -> None:
 
     boxes = [(0.0, 0.0, 0.2, 0.2), (0.4, 0.3, 0.7, 0.6)]
     assert pointing_game_hit(heatmap, boxes) is True
+
+
+def test_heatmap_border_artifact_metrics() -> None:
+    """Border artifact helpers flag edge-dominant CAMs for audit reports."""
+
+    heatmap = np.zeros((10, 10), dtype=np.float32)
+    heatmap[0, 0] = 1.0
+    heatmap[5, 5] = 1.0
+
+    assert np.isclose(heatmap_border_fraction(heatmap, border_fraction=0.2), 0.5)
+    assert heatmap_peak_in_border(heatmap, border_fraction=0.2) is True
 
 
 def test_average_precision_at_iou_matches_single_true_positive() -> None:

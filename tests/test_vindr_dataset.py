@@ -3,6 +3,7 @@
 from pathlib import Path
 
 import pytest
+import yaml
 from PIL import Image
 
 from medguard.data.vindr import (
@@ -174,3 +175,16 @@ def test_vindr_dataset_available_requires_image_and_annotation(tmp_path: Path) -
         encoding="utf-8",
     )
     assert dataset_available(config) is True
+
+
+def test_grounding_config_blocks_phase4_until_real_localization_audit() -> None:
+    """Owner gate requires real localization evidence before Phase 4 starts."""
+
+    config = yaml.safe_load(Path("configs/grounding_vindr.yaml").read_text(encoding="utf-8"))
+    gate = config["phase_gate"]
+
+    assert gate["phase4_entry_status"] == "blocked_until_real_localization_audit"
+    assert gate["require_real_localization_before_phase4"] is True
+    assert gate["synthetic_smoke_is_blocking_for_phase4"] is True
+    assert "vindr-cxr" in gate["accepted_real_localization_datasets"]
+    assert "rsna-pneumonia-detection" in gate["accepted_real_localization_datasets"]

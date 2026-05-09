@@ -40,3 +40,23 @@ Performance must be monitored across demographic and technical metadata to ensur
 * **Sigmoid is for inference only:** Only apply `torch.sigmoid()` when converting network outputs to probabilities for evaluation or UI visualization. 
 * **No test-set tuning:** Do not perform any threshold or temperature tuning on the test set. All calibrations and hyperparameter choices happen exclusively on the validation set.
 * **NIH labels are global only:** Do not treat NIH image-level labels as ground truth for localization (bounding boxes). Phase 3 addresses VinDr-CXR for spatial localization metrics.
+
+## 6. Phase 3B Data-Unblock Addendum
+VinDr-CXR remains the preferred localization audit dataset, but local access is
+currently blocked. The owner authorized RSNA Pneumonia Detection as a
+lower-friction real-data fallback for the course-project audit.
+
+**RSNA scope:**
+* Use only provider-supplied lung-opacity bounding boxes from
+  `stage_2_train_labels.csv`.
+* Treat RSNA as a pneumonia/lung-opacity localization benchmark only.
+* Map NIH `Pneumonia` to RSNA `Lung Opacity`; leave all other NIH labels
+  unmapped rather than reporting silent zeros.
+* Use deterministic patient-level train/val partitioning of public labeled
+  training rows unless an explicit manifest is supplied.
+* Do not use Kaggle hidden test rows for tuning or model selection.
+
+**Phase 4 gate:**
+Synthetic overlays are still insufficient. Before Phase 4, a real VinDr-CXR or
+RSNA Pneumonia localization run must produce metrics and Gemini must rerun the
+visual audit on real overlays.

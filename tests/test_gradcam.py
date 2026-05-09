@@ -8,6 +8,7 @@ from medguard.explain.gradcam import (
     find_last_conv_layer,
     generate_gradcam,
     gradcam_from_tensors,
+    postprocess_heatmap,
     should_generate_explanation,
 )
 
@@ -109,6 +110,32 @@ def test_gradcam_methods_agree_on_uniform_gradient_case() -> None:
     )
 
     assert np.array_equal(vanilla, plus_plus)
+
+
+def test_postprocess_heatmap_can_suppress_border_artifacts() -> None:
+    """Optional border suppression removes implementation-level edge peaks."""
+
+    heatmap = np.zeros((10, 10), dtype=np.float32)
+    heatmap[0, 0] = 1.0
+    heatmap[5, 5] = 0.5
+
+    processed = postprocess_heatmap(heatmap, border_suppression_fraction=0.2)
+
+    assert processed[0, 0] == 0.0
+    assert processed[5, 5] == 1.0
+
+
+def test_postprocess_heatmap_smoothing_preserves_shape_and_range() -> None:
+    """Optional smoothing keeps CAM coordinates in the same image grid."""
+
+    heatmap = np.zeros((10, 12), dtype=np.float32)
+    heatmap[5, 6] = 1.0
+
+    processed = postprocess_heatmap(heatmap, smoothing_sigma=1.0)
+
+    assert processed.shape == heatmap.shape
+    assert processed.min() >= 0.0
+    assert processed.max() <= 1.0
 
 
 def test_generate_gradcam_returns_none_when_abstained() -> None:

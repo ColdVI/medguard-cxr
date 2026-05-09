@@ -58,6 +58,28 @@ def colorize_heatmap(
     return image
 
 
+def resize_heatmap_to_image(heatmap: np.ndarray, image_size: tuple[int, int]) -> np.ndarray:
+    """Resize a 2D CAM to PIL image size ``(width, height)``."""
+
+    if len(image_size) != 2:
+        raise ValueError("image_size must be (width, height).")
+    width, height = image_size
+    if width <= 0 or height <= 0:
+        raise ValueError("image_size values must be positive.")
+    image = Image.fromarray((_normalize_heatmap(heatmap) * 255.0).astype(np.uint8), mode="L")
+    resized = image.resize((width, height), Image.Resampling.BILINEAR)
+    return np.asarray(resized, dtype=np.float32) / 255.0
+
+
+def denormalize_bbox(
+    bbox: Sequence[float],
+    image_size: tuple[int, int],
+) -> tuple[int, int, int, int]:
+    """Convert normalized ``xyxy`` coordinates to drawable pixel endpoints."""
+
+    return _box_to_pixels(bbox, image_size, normalized=True)
+
+
 def draw_bounding_box(
     image: Image.Image,
     bbox: Sequence[float],
@@ -71,7 +93,11 @@ def draw_bounding_box(
     if width < 1:
         raise ValueError("width must be >= 1.")
     draw = ImageDraw.Draw(image)
-    xyxy = _box_to_pixels(bbox, image.size, normalized=normalized)
+    xyxy = denormalize_bbox(bbox, image.size) if normalized else _box_to_pixels(
+        bbox,
+        image.size,
+        normalized=False,
+    )
     draw.rectangle(xyxy, outline=color, width=width)
     if label:
         draw.text((xyxy[0] + 2, max(0, xyxy[1] - 12)), label, fill=color)
@@ -101,7 +127,7 @@ def save_overlay(
     heatmap: np.ndarray,
     output_path: str | Path,
     predicted_box: Sequence[float] | None = None,
-    ground_truth_box: Sequence[float] | None = None,
+    ground_truth_box: Sequence[float] | Sequence[Sequence[float]] | None = None,
     alpha: float = 0.35,
     colormap: str = "jet",
     banner_text: str | None = None,
@@ -115,8 +141,13 @@ def save_overlay(
     rendered = overlay_heatmap(image=image, heatmap=heatmap, alpha=alpha, colormap=colormap)
     if predicted_box is not None:
         draw_bounding_box(rendered, predicted_box, color=(220, 38, 38), label="pred")
-    if ground_truth_box is not None:
-        draw_bounding_box(rendered, ground_truth_box, color=(22, 163, 74), label="gt")
+    for index, box in enumerate(_as_box_list(ground_truth_box)):
+        draw_bounding_box(
+            rendered,
+            box,
+            color=(22, 163, 74),
+            label="gt" if index == 0 else None,
+        )
     if banner_text:
         rendered = add_banner(rendered, banner_text)
 
@@ -223,13 +254,33 @@ def _box_to_pixels(
     width, height = size
     if normalized:
         x_min, y_min, x_max, y_max = arr
-        arr = np.array([x_min * width, y_min * height, x_max * width, y_max * height])
+        arr = np.array(
+            [
+                np.floor(x_min * width),
+                np.floor(y_min * height),
+                np.ceil(x_max * width) - 1.0,
+                np.ceil(y_max * height) - 1.0,
+            ]
+        )
     x_min, y_min, x_max, y_max = arr
     if x_max <= x_min or y_max <= y_min:
         raise ValueError("bbox must satisfy x_max > x_min and y_max > y_min.")
     return (
         int(np.clip(round(x_min), 0, width - 1)),
         int(np.clip(round(y_min), 0, height - 1)),
-        int(np.clip(round(x_max), 1, width)),
-        int(np.clip(round(y_max), 1, height)),
+        int(np.clip(round(x_max), 0, width - 1)),
+        int(np.clip(round(y_max), 0, height - 1)),
     )
+
+
+def _as_box_list(
+    boxes: Sequence[float] | Sequence[Sequence[float]] | None,
+) -> list[Sequence[float]]:
+    if boxes is None:
+        return []
+    arr = np.asarray(boxes, dtype=np.float64)
+    if arr.shape == (4,):
+        return [arr.tolist()]
+    if arr.ndim == 2 and arr.shape[1] == 4:
+        return [row.tolist() for row in arr]
+    raise ValueError("ground_truth_box must be one xyxy box or a sequence of xyxy boxes.")

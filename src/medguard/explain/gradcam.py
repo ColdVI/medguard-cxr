@@ -57,6 +57,8 @@ def generate_gradcam(
     abstention_threshold: float,
     target_layer: nn.Module | None = None,
     method: str = "gradcam",
+    smoothing_sigma: float = 0.0,
+    border_suppression_fraction: float = 0.0,
 ) -> np.ndarray | None:
     """Generate a normalized Grad-CAM heatmap for one image/class.
 
@@ -119,6 +121,8 @@ def generate_gradcam(
         gradients[-1],
         output_size=batch.shape[-2:],
         method=method,
+        smoothing_sigma=smoothing_sigma,
+        border_suppression_fraction=border_suppression_fraction,
     )
     return cam
 
@@ -128,15 +132,51 @@ def gradcam_from_tensors(
     gradients: torch.Tensor,
     output_size: tuple[int, int],
     method: str = "gradcam",
+    smoothing_sigma: float = 0.0,
+    border_suppression_fraction: float = 0.0,
 ) -> np.ndarray:
     """Build a CAM heatmap from captured activation/gradient tensors."""
 
     normalized_method = method.lower().replace("-", "_")
     if normalized_method == "gradcam":
-        return _gradcam_from_tensors(activations, gradients, output_size)
-    if normalized_method in {"gradcam_plus_plus", "gradcam++"}:
-        return _gradcam_plus_plus_from_tensors(activations, gradients, output_size)
-    raise ValueError(f"Unsupported Grad-CAM method: {method}")
+        heatmap = _gradcam_from_tensors(activations, gradients, output_size)
+    elif normalized_method in {"gradcam_plus_plus", "gradcam++"}:
+        heatmap = _gradcam_plus_plus_from_tensors(activations, gradients, output_size)
+    else:
+        raise ValueError(f"Unsupported Grad-CAM method: {method}")
+    return postprocess_heatmap(
+        heatmap,
+        smoothing_sigma=smoothing_sigma,
+        border_suppression_fraction=border_suppression_fraction,
+    )
+
+
+def postprocess_heatmap(
+    heatmap: np.ndarray,
+    smoothing_sigma: float = 0.0,
+    border_suppression_fraction: float = 0.0,
+) -> np.ndarray:
+    """Apply optional audit-time smoothing and border suppression to a CAM.
+
+    Border suppression is disabled by default because pleural findings can be
+    edge-adjacent. Enable it only after an audit identifies implementation-level
+    border artifacts, not to improve reported localization metrics.
+    """
+
+    if smoothing_sigma < 0.0:
+        raise ValueError("smoothing_sigma must be >= 0.")
+    if not 0.0 <= border_suppression_fraction < 0.5:
+        raise ValueError("border_suppression_fraction must be in [0, 0.5).")
+
+    processed = np.asarray(heatmap, dtype=np.float32)
+    if processed.ndim != 2:
+        raise ValueError("heatmap must be 2D.")
+    processed = np.nan_to_num(processed, nan=0.0, posinf=1.0, neginf=0.0)
+    if smoothing_sigma > 0.0:
+        processed = _gaussian_blur(processed, sigma=smoothing_sigma)
+    if border_suppression_fraction > 0.0:
+        processed = _suppress_border(processed, border_suppression_fraction)
+    return _normalize_array(processed)
 
 
 def _gradcam_from_tensors(
@@ -175,6 +215,39 @@ def _normalize_and_resize_cam(cam: torch.Tensor, output_size: tuple[int, int]) -
         return np.zeros(output_size, dtype=np.float32)
     normalized = (cam_2d - cam_min) / (cam_max - cam_min)
     return normalized.detach().cpu().numpy().astype(np.float32)
+
+
+def _gaussian_blur(heatmap: np.ndarray, sigma: float) -> np.ndarray:
+    radius = max(1, int(np.ceil(sigma * 3.0)))
+    coordinates = np.arange(-radius, radius + 1, dtype=np.float32)
+    kernel = np.exp(-(coordinates**2) / (2.0 * sigma**2))
+    kernel /= np.sum(kernel)
+    padded_x = np.pad(heatmap, ((0, 0), (radius, radius)), mode="edge")
+    blurred_x = np.apply_along_axis(lambda row: np.convolve(row, kernel, mode="valid"), 1, padded_x)
+    padded_y = np.pad(blurred_x, ((radius, radius), (0, 0)), mode="edge")
+    return np.apply_along_axis(lambda col: np.convolve(col, kernel, mode="valid"), 0, padded_y)
+
+
+def _suppress_border(heatmap: np.ndarray, fraction: float) -> np.ndarray:
+    height, width = heatmap.shape
+    margin_y = int(np.floor(height * fraction))
+    margin_x = int(np.floor(width * fraction))
+    suppressed = heatmap.copy()
+    if margin_y > 0:
+        suppressed[:margin_y, :] = 0.0
+        suppressed[-margin_y:, :] = 0.0
+    if margin_x > 0:
+        suppressed[:, :margin_x] = 0.0
+        suppressed[:, -margin_x:] = 0.0
+    return suppressed
+
+
+def _normalize_array(values: np.ndarray) -> np.ndarray:
+    minimum = float(np.min(values))
+    maximum = float(np.max(values))
+    if maximum <= minimum:
+        return np.zeros(values.shape, dtype=np.float32)
+    return ((values - minimum) / (maximum - minimum)).astype(np.float32)
 
 
 def _as_batch(image: torch.Tensor) -> torch.Tensor:

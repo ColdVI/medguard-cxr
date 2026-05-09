@@ -275,6 +275,44 @@ def pointing_game_accuracy(
     return float(np.mean(hits))
 
 
+def heatmap_border_fraction(heatmap: np.ndarray, border_fraction: float = 0.05) -> float:
+    """Return how much CAM mass falls inside an image-border band."""
+
+    if not 0.0 <= border_fraction < 0.5:
+        raise ValueError("border_fraction must be in [0, 0.5).")
+    arr = _validate_heatmap(heatmap)
+    total = float(np.sum(np.clip(arr, 0.0, None)))
+    if total <= 0.0:
+        return 0.0
+    height, width = arr.shape
+    margin_y = max(1, int(np.floor(height * border_fraction)))
+    margin_x = max(1, int(np.floor(width * border_fraction)))
+    mask = np.zeros(arr.shape, dtype=bool)
+    mask[:margin_y, :] = True
+    mask[-margin_y:, :] = True
+    mask[:, :margin_x] = True
+    mask[:, -margin_x:] = True
+    return float(np.sum(np.clip(arr[mask], 0.0, None)) / total)
+
+
+def heatmap_peak_in_border(heatmap: np.ndarray, border_fraction: float = 0.05) -> bool:
+    """Return whether the CAM argmax lies in the configured image-border band."""
+
+    if not 0.0 <= border_fraction < 0.5:
+        raise ValueError("border_fraction must be in [0, 0.5).")
+    arr = _validate_heatmap(heatmap)
+    height, width = arr.shape
+    margin_y = max(1, int(np.floor(height * border_fraction)))
+    margin_x = max(1, int(np.floor(width * border_fraction)))
+    y, x = np.unravel_index(int(np.nanargmax(arr)), arr.shape)
+    return bool(
+        y < margin_y
+        or y >= height - margin_y
+        or x < margin_x
+        or x >= width - margin_x
+    )
+
+
 def iou_summary(
     pred_boxes: Sequence[Sequence[float] | None],
     gt_boxes: Sequence[Sequence[float]],

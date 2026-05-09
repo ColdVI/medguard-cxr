@@ -14,6 +14,7 @@ PACKAGE_MODULES = [
 
 IMPLEMENTED_MODULES = [
     "medguard.data.nih",
+    "medguard.data.rsna",
     "medguard.data.transforms",
     "medguard.data.vindr",
     "medguard.models.classifier",

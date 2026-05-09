@@ -60,6 +60,10 @@ gradcam:
   confidence_gate: 0.70
   skip_abstained: true
   cam_threshold: 0.60
+  postprocessing:
+    smoothing_sigma: 0.0
+    border_suppression_fraction: 0.0
+    border_artifact_fraction: 0.05
 
 localization:
   iou_threshold: 0.50
@@ -74,3 +78,16 @@ localization:
 
 safety:
   note: "Grad-CAM heatmaps are engineering review artifacts only, not clinically validated evidence."
+
+phase_gate:
+  phase4_entry_status: blocked_until_real_localization_audit
+  accepted_real_localization_datasets:
+    - vindr-cxr
+    - rsna-pneumonia-detection
+  require_real_localization_before_phase4: true
+  synthetic_smoke_is_blocking_for_phase4: true
+  required_before_phase4:
+    - local VinDr-CXR or RSNA Pneumonia annotations and images available under data.root
+    - real localization metrics written to results/grounding_vindr_eval.json or results/grounding_rsna_eval.json
+    - Phase 3B visual audit rerun on real overlays
+    - owner approval after real-data audit
