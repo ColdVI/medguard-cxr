@@ -41,7 +41,7 @@ measures real model quality.
 | Localization | Pointing game acc | P3 | > 0.50 | 0.000 on RSNA Lung Opacity positives with generated CAMs; `WARNING_DO_NOT_USE` smoke checkpoint |
 | Cross-dataset localization | NIH Pneumonia→RSNA Lung Opacity pointing/IoU | P3 | report only | Pneumonia AUROC 0.423, pointing 0.000, mean IoU 0.089; `WARNING_DO_NOT_USE` smoke checkpoint |
 | VQA | Exact match | P4 | > 0.60 | Rule-based baseline available; Phase 4B VLM evaluation path is experimental and has no real metrics yet |
-| OOD rejection | Cat photo rejected | P4 | pass | Phase 4A smoke/API test coverage only; no clinical-performance score |
+| OOD rejection | Cat photo rejected | P4 | pass | Phase 4A test/API/Gradio smoke coverage passes; no clinical-performance score |
 
 ## Repository Layout
 
@@ -86,6 +86,14 @@ clinical or model quality.
 
 The below-chance RSNA Pneumonia AUROC of 0.423 is consistent with an untrained
 or smoke-trained checkpoint and is not a model-quality measurement.
+
+## Final Execution Status
+
+Final local execution on 2026-05-10 found RSNA Pneumonia Detection data under
+`data/rsna/` and regenerated `results/grounding_rsna_eval.json` against 1024
+validation records. NIH ChestX-ray14 data was not present under `data/nih/`, so
+classifier training, baseline evaluation, and calibration ran in documented
+smoke mode only. Public portfolio release is blocked on a real NIH training run.
 
 ## Calibration and Abstention
 

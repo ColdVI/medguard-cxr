@@ -1,6 +1,6 @@
 .PHONY: install prepare-nih prepare-vindr prepare-rsna train eval eval-grounding-rsna calibrate vqa-dataset train-vlm eval-vlm-zero-shot eval-vlm-lora eval-vlm-compare serve-api test demo lint
 
-PYTHON ?= python3
+PYTHON ?= $(if $(wildcard .venv/bin/python),.venv/bin/python,python3)
 PIP ?= $(PYTHON) -m pip
 
 install:

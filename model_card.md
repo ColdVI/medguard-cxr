@@ -74,7 +74,7 @@ Current explainability is limited to the Phase 3R RSNA path: NIH `Pneumonia`
 probability evaluated against RSNA `Lung Opacity` boxes. Grad-CAM is generated
 only for non-abstained predictions above the configured confidence gate
 (`0.70`). The report records 30 generated Grad-CAM overlays from 1024 evaluated
-RSNA validation records, with 7 generated positive CAMs used for pointing-game
+RSNA validation records, with 8 generated positive CAMs used for pointing-game
 accounting.
 
 The current RSNA metrics are `WARNING_DO_NOT_USE`: Pneumonia AUROC 0.423,

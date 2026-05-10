@@ -338,20 +338,27 @@ def write_training_report(
     """Write a compact training report."""
     output = Path("results/baseline_nih_train.json")
     output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(
-        json.dumps(
-            {
-                "mode": mode,
-                "device": str(device),
-                "best": dict(best_report),
-                "pos_weight_source": "computed_from_training_set",
-                "pos_weight_formula": "negative_count_c / positive_count_c",
-                "pos_weight": [float(value) for value in pos_weight.cpu().tolist()],
-                "label_quality": "NIH labels are noisy silver-standard NLP-mined labels.",
-                "localization": "not_applicable_nih_image_level_labels_only",
-            },
-            indent=2,
+    report = {
+        "mode": mode,
+        "device": str(device),
+        "best": dict(best_report),
+        "pos_weight_source": "computed_from_training_set",
+        "pos_weight_formula": "negative_count_c / positive_count_c",
+        "pos_weight": [float(value) for value in pos_weight.cpu().tolist()],
+        "label_quality": "NIH labels are noisy silver-standard NLP-mined labels.",
+        "localization": "not_applicable_nih_image_level_labels_only",
+    }
+    if mode == "smoke_no_dataset":
+        report["WARNING_DO_NOT_USE"] = "synthetic_smoke_only_not_a_real_evaluation"
+        report["model_quality_evidence"] = False
+        report["smoke_note"] = (
+            "Synthetic smoke training exercises code paths only; the best-epoch values "
+            "are not model-quality metrics."
         )
+    else:
+        report["model_quality_evidence"] = True
+    output.write_text(
+        json.dumps(report, indent=2)
     )
 
 
