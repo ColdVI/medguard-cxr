@@ -44,6 +44,7 @@ vlm:
     task_type: CAUSAL_LM
   training:
     enabled: false
+    classifier_checkpoint_is_smoke: true
     epochs: 3
     batch_size: 4
     grad_accum: 4

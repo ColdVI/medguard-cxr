@@ -104,6 +104,11 @@ def _run_training(
     train_records = _read_jsonl(train_path)
     val_records = _read_jsonl(val_path)
     engine = load_vlm(config)
+
+    # Placeholder for the real HF Trainer/Accelerate QLoRA loop. The current
+    # Phase 4B closeout initializes adapter-only artifacts only after all blocker
+    # checks pass, and still reports zero completed epochs until a GPU-backed
+    # training/evaluation run is implemented and reviewed.
     adapter_path.mkdir(parents=True, exist_ok=True)
     adapter_config = adapter_path / "adapter_config.json"
     adapter_config.write_text(
@@ -121,9 +126,8 @@ def _run_training(
     if hasattr(engine.model, "save_pretrained"):
         engine.model.save_pretrained(adapter_path)
 
-    return {
+    report = {
         "mode": "vlm_lora_training",
-        "WARNING_DO_NOT_USE": SMOKE_WARNING,
         "model_quality_evidence": False,
         "base_model": config["vlm"]["base_model"],
         "adapter_path": str(adapter_path),
@@ -136,6 +140,9 @@ def _run_training(
         "seed": int(config.get("seed", 2026)),
         "status": "adapter_initialized_training_loop_blocked_pending_full_gpu_run",
     }
+    if _classifier_checkpoint_is_smoke(config):
+        report["WARNING_DO_NOT_USE"] = SMOKE_WARNING
+    return report
 
 
 def _blocked_report(
@@ -161,6 +168,12 @@ def _blocked_report(
         "blocked_reason": blocker,
         "dependency_status": dependency_status(),
     }
+
+
+def _classifier_checkpoint_is_smoke(config: dict[str, Any]) -> bool:
+    return bool(
+        config.get("vlm", {}).get("training", {}).get("classifier_checkpoint_is_smoke", True)
+    )
 
 
 def _read_jsonl(path: Path) -> list[dict[str, Any]]:

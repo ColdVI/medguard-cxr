@@ -12,7 +12,6 @@ license = { text = "Proprietary" }
 authors = [{ name = "Anil Keskin" }]
 dependencies = [
     "accelerate==1.2.1",
-    "bitsandbytes>=0.43.0",
     "captum==0.7.0",
     "fastapi==0.115.6",
     "grad-cam==1.5.4",
@@ -38,6 +37,9 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+vlm = [
+    "bitsandbytes>=0.43.0",
+]
 dev = [
     "pytest==8.3.4",
     "ruff==0.8.4",
