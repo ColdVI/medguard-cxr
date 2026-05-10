@@ -47,6 +47,7 @@ def test_supported_finding_returns_structured_answer() -> None:
     assert response.confidence == 0.82
     assert response.evidence is not None
     assert response.safety_disclaimer == SAFETY_DISCLAIMER
+    assert response.source == "rule_based"
 
 
 def test_low_confidence_vqa_abstains() -> None:
@@ -68,7 +69,7 @@ def test_unsupported_finding_is_rejected() -> None:
     response = answer_question("Is there evidence of Brain Tumor?", _probs(0.82), _thresholds())
 
     assert response.abstained is True
-    assert response.reason == "unsupported_finding"
+    assert response.reason == "unsupported_concept"
 
 
 def test_safety_disclaimer_always_present() -> None:

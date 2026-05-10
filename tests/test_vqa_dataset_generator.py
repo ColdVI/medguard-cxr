@@ -70,6 +70,8 @@ def test_generator_records_image_provenance() -> None:
     records = generate_dataset_records(_manifest()[:1], _thresholds())
 
     assert all(record["image_provenance"] == "synthetic_smoke" for record in records)
+    assert all(record["supervision_quality"] == "weak" for record in records)
+    assert all(record["source_phase"] == "4B" for record in records)
 
 
 def test_generator_emits_warning_when_smoke_classifier_used() -> None:
@@ -114,3 +116,36 @@ def test_write_split_jsonl_outputs_three_files(tmp_path: Path) -> None:
     assert (tmp_path / "synthetic_qa.train.jsonl").exists()
     assert (tmp_path / "synthetic_qa.val.jsonl").exists()
     assert (tmp_path / "synthetic_qa.test.jsonl").exists()
+
+
+def test_generator_adds_phase4b_question_types() -> None:
+    records = generate_dataset_records(_manifest()[:1], _thresholds(), n_distractors=1)
+    kinds = {record["label_kind"] for record in records}
+
+    assert {"confidence_query", "multi_finding"} <= kinds
+
+
+def test_generator_does_not_infer_localization_from_rsna_path_only() -> None:
+    records = generate_dataset_records(_manifest()[:1], _thresholds(), n_distractors=1)
+
+    assert not any(str(record["label_kind"]).startswith("localization_") for record in records)
+
+
+def test_generator_adds_localization_only_when_box_metadata_exists() -> None:
+    manifest = [
+        {
+            "image_id": "patient0_000.png",
+            "path": "data/rsna/image0.png",
+            "box_count": "1",
+            "x": "10",
+            "y": "20",
+            "width": "30",
+            "height": "40",
+            "image_width": "100",
+            "image_height": "100",
+        }
+    ]
+
+    records = generate_dataset_records(manifest, _thresholds(), n_distractors=1)
+
+    assert any(str(record["label_kind"]).startswith("localization_") for record in records)

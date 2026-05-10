@@ -62,13 +62,15 @@ safety:
   note: "RSNA overlays are research-only engineering artifacts; lung-opacity boxes are not clinically validated evidence."
 
 phase_gate:
-  phase4_entry_status: conditional_go_after_rsna_real_overlay_audit
+  phase4_entry_status: phase4a_engineering_allowed_phase4b_blocked_until_real_checkpoint
   accepted_real_localization_datasets:
     - rsna-pneumonia-detection
-  require_real_localization_before_phase4: true
-  synthetic_smoke_is_blocking_for_phase4: true
-  required_before_phase4:
+  require_real_localization_before_phase4a: false
+  require_real_checkpoint_before_phase4b: true
+  synthetic_smoke_is_blocking_for_phase4b: true
+  required_before_phase4b:
     - local RSNA Pneumonia images and box annotations available under data.root
     - real localization metrics written to results/grounding_rsna_eval.json
-    - Phase 3B visual audit rerun on real overlays
-    - owner approval after real-data audit
+    - non-smoke NIH checkpoint evaluated on RSNA Pneumonia validation
+    - Phase 2 calibration refreshed on real validation logits
+    - owner approval after real-checkpoint audit

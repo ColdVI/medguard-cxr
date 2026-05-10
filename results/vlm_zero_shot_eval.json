@@ -1,0 +1,36 @@
+{
+  "WARNING_DO_NOT_USE": "synthetic_smoke_only_not_a_real_evaluation",
+  "base_model": "Qwen/Qwen2.5-VL-3B-Instruct",
+  "comparison": {
+    "rule_based": {
+      "computed": false
+    },
+    "vlm_lora": {
+      "computed": false
+    },
+    "vlm_zero_shot": {
+      "computed": false
+    }
+  },
+  "dependency_status": {
+    "available": [
+      "torch",
+      "transformers",
+      "peft"
+    ],
+    "missing": [
+      "bitsandbytes"
+    ],
+    "required": [
+      "torch",
+      "transformers",
+      "peft",
+      "bitsandbytes"
+    ]
+  },
+  "mode": "vlm_phase4b_evaluation_blocked",
+  "model_quality_evidence": false,
+  "per_record": [],
+  "reason": "test_jsonl_missing:data/vqa/synthetic_qa.test.jsonl",
+  "test_jsonl": "data/vqa/synthetic_qa.test.jsonl"
+}

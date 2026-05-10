@@ -27,7 +27,6 @@ from medguard.vqa.templates import (
     OOD_REJECTED_ANSWER,
     UNSUPPORTED_CONCEPT_ANSWER,
     answer_for_label_kind,
-    display_finding,
 )
 
 PHASE = "4"
@@ -74,19 +73,16 @@ def answer_question(
         question,
         class_names=thresholds.classes,
     ) is None:
-        answer = (
-            f"The model is not confident enough to answer about "
-            f"{display_finding(requested_finding)} for this image."
-        )
         return VQAResponse(
             question=question,
-            answer=answer,
+            answer=UNSUPPORTED_CONCEPT_ANSWER.format(n_findings=len(NIH_LABELS)),
             confidence=0.0,
             evidence=None,
             abstained=True,
-            reason="unsupported_finding",
+            reason="unsupported_concept",
             safety_disclaimer=SAFETY_DISCLAIMER,
             model_provenance=model_provenance,
+            source="rule_based",
         )
 
     kind = classify_question(question, class_names=thresholds.classes)
@@ -117,6 +113,7 @@ def answer_question(
             reason="low_confidence_band",
             safety_disclaimer=SAFETY_DISCLAIMER,
             model_provenance=model_provenance,
+            source="rule_based",
         )
     if record.prediction == 1 and require_evidence_for_positive and evidence is None:
         return VQAResponse(
@@ -128,6 +125,7 @@ def answer_question(
             reason="evidence_unavailable",
             safety_disclaimer=SAFETY_DISCLAIMER,
             model_provenance=model_provenance,
+            source="rule_based",
         )
 
     label_kind = "positive" if record.prediction == 1 else "negative"
@@ -140,6 +138,7 @@ def answer_question(
         reason="",
         safety_disclaimer=SAFETY_DISCLAIMER,
         model_provenance=model_provenance,
+        source="rule_based",
     )
 
 
@@ -186,4 +185,5 @@ def _abstain(
         reason=reason,  # type: ignore[arg-type]
         safety_disclaimer=SAFETY_DISCLAIMER,
         model_provenance=provenance,
+        source="rule_based",
     )

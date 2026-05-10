@@ -83,7 +83,7 @@ def build_demo(service: MedGuardService | None = None) -> Any:
             abstained = "Yes" if response.abstained else "No"
             return (
                 f'{response.answer}\n\nConfidence: {response.confidence:.2f} | '
-                f"Abstained: {abstained} | Reason: {reason}"
+                f"Abstained: {abstained} | Reason: {reason} | Source: {response.source}"
             )
 
         image.change(run_predict, inputs=image, outputs=[predictions, evidence])

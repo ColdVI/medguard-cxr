@@ -131,7 +131,9 @@ def test_vqa_endpoint_returns_full_schema() -> None:
         "reason",
         "safety_disclaimer",
         "model_provenance",
+        "source",
     }
+    assert payload["source"] == "rule_based"
 
 
 def test_disclaimer_middleware_replaces_missing_disclaimer_with_500() -> None:

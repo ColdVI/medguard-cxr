@@ -17,7 +17,10 @@ QuestionKind = Literal[
 ]
 
 DIAGNOSIS_REQUEST_PATTERN = re.compile(
-    r"\b(diagnosis|diagnose|treatment|prescrib|admit|recommend|prognos|advise|should I)\b",
+    r"\b("
+    r"diagnosis|diagnose|treatment|prescrib|admit|recommend|prognos|advise|"
+    r"should I|do I have"
+    r")\b",
     flags=re.IGNORECASE,
 )
 UNSUPPORTED_CONCEPT_PATTERN = re.compile(
@@ -25,7 +28,11 @@ UNSUPPORTED_CONCEPT_PATTERN = re.compile(
     flags=re.IGNORECASE,
 )
 SUPPORTED_FINDING_PATTERN = re.compile(
-    r"^Is there evidence of (?P<finding>[A-Za-z_ ]+)\?$",
+    r"^Is there evidence of (?P<finding>[A-Za-z_ ]+)\?(?:\s*Where\?)?$",
+    flags=re.IGNORECASE,
+)
+CONFIDENCE_FINDING_PATTERN = re.compile(
+    r"^How confident is the model about (?P<finding>[A-Za-z_ ]+)\?$",
     flags=re.IGNORECASE,
 )
 
@@ -60,6 +67,8 @@ def extract_supported_finding(
 
     match = SUPPORTED_FINDING_PATTERN.match(question.strip())
     if match is None:
+        match = CONFIDENCE_FINDING_PATTERN.match(question.strip())
+    if match is None:
         return None
     requested = _normalize_finding(match.group("finding"))
     for class_name in class_names or NIH_LABELS:
@@ -72,6 +81,8 @@ def requested_finding_text(question: str) -> str | None:
     """Return the finding-like text from the canonical question form, if present."""
 
     match = SUPPORTED_FINDING_PATTERN.match(question.strip())
+    if match is None:
+        match = CONFIDENCE_FINDING_PATTERN.match(question.strip())
     if match is None:
         return None
     return match.group("finding").strip()

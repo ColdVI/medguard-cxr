@@ -27,6 +27,9 @@ from medguard.vqa.templates import (
     DIAGNOSIS_REQUEST_QUESTIONS,
     UNSUPPORTED_CONCEPT_QUESTIONS,
     answer_for_label_kind,
+    confidence_answer,
+    localization_answer,
+    multi_finding_answer,
     validate_qa_record,
 )
 
@@ -166,6 +169,49 @@ def generate_dataset_records(
             )
         )
         output.append(
+            _confidence_record(
+                row=row,
+                image_id=image_id,
+                image_path=image_path,
+                patient_id=patient_id,
+                class_name=classes[0],
+                confidence=float(decisions[0].confidence),
+                calibrator_version=calibrator_version,
+                image_provenance=provenance,
+                is_smoke=is_smoke,
+            )
+        )
+        positives = [
+            decision.class_name
+            for decision in decisions
+            if not decision.abstained and decision.prediction == 1
+        ]
+        output.append(
+            _multi_finding_record(
+                row=row,
+                image_id=image_id,
+                image_path=image_path,
+                patient_id=patient_id,
+                positive_classes=positives,
+                calibrator_version=calibrator_version,
+                image_provenance=provenance,
+                is_smoke=is_smoke,
+            )
+        )
+        if _has_rsna_localization(row, provenance):
+            output.append(
+                _localization_record(
+                    row=row,
+                    image_id=image_id,
+                    image_path=image_path,
+                    patient_id=patient_id,
+                    label_kind="positive" if "Pneumonia" in positives else "uncertain",
+                    calibrator_version=calibrator_version,
+                    image_provenance=provenance,
+                    is_smoke=is_smoke,
+                )
+            )
+        output.append(
             _scope_record(
                 row,
                 image_id,
@@ -295,6 +341,7 @@ def _qa_record(
         "calibrator_version": calibrator_version,
         "image_provenance": image_provenance,
     }
+    record.update(_phase4b_metadata(row, class_name, image_provenance))
     record.update({key: value for key, value in row.items() if key not in record})
     if is_smoke:
         record["WARNING_DO_NOT_USE"] = SMOKE_WARNING
@@ -328,10 +375,176 @@ def _scope_record(
         "calibrator_version": calibrator_version,
         "image_provenance": image_provenance,
     }
+    record.update(_phase4b_metadata(row, None, image_provenance))
     record.update({key: value for key, value in row.items() if key not in record})
     if is_smoke:
         record["WARNING_DO_NOT_USE"] = SMOKE_WARNING
     return record
+
+
+def _confidence_record(
+    row: dict[str, str],
+    image_id: str,
+    image_path: str,
+    patient_id: str,
+    class_name: str,
+    confidence: float,
+    calibrator_version: str,
+    image_provenance: str,
+    is_smoke: bool,
+) -> dict[str, Any]:
+    record = {
+        "image_id": image_id,
+        "image_path": image_path,
+        "patient_id": patient_id,
+        "question": f"How confident is the model about {class_name.replace('_', ' ')}?",
+        "answer": confidence_answer(class_name, confidence),
+        "label_class": class_name,
+        "label_kind": "confidence_query",
+        "ground_truth_label": None,
+        "model_prediction": None,
+        "model_confidence": round(float(confidence), 6),
+        "model_abstained": False,
+        "abstention_reason": "",
+        "calibrator_version": calibrator_version,
+        "image_provenance": image_provenance,
+    }
+    record.update(_phase4b_metadata(row, class_name, image_provenance))
+    record.update({key: value for key, value in row.items() if key not in record})
+    if is_smoke:
+        record["WARNING_DO_NOT_USE"] = SMOKE_WARNING
+    return record
+
+
+def _multi_finding_record(
+    row: dict[str, str],
+    image_id: str,
+    image_path: str,
+    patient_id: str,
+    positive_classes: list[str],
+    calibrator_version: str,
+    image_provenance: str,
+    is_smoke: bool,
+) -> dict[str, Any]:
+    record = {
+        "image_id": image_id,
+        "image_path": image_path,
+        "patient_id": patient_id,
+        "question": "What findings are present?",
+        "answer": multi_finding_answer(positive_classes),
+        "label_class": None,
+        "label_kind": "multi_finding",
+        "ground_truth_label": None,
+        "model_prediction": None,
+        "model_confidence": 0.0,
+        "model_abstained": not bool(positive_classes),
+        "abstention_reason": "" if positive_classes else "low_confidence_band",
+        "calibrator_version": calibrator_version,
+        "image_provenance": image_provenance,
+    }
+    record.update(_phase4b_metadata(row, None, image_provenance))
+    record.update({key: value for key, value in row.items() if key not in record})
+    if is_smoke:
+        record["WARNING_DO_NOT_USE"] = SMOKE_WARNING
+    return record
+
+
+def _localization_record(
+    row: dict[str, str],
+    image_id: str,
+    image_path: str,
+    patient_id: str,
+    label_kind: str,
+    calibrator_version: str,
+    image_provenance: str,
+    is_smoke: bool,
+) -> dict[str, Any]:
+    answer = (
+        localization_answer("Pneumonia", _quadrant_from_row(row))
+        if label_kind == "positive"
+        else answer_for_label_kind("uncertain", "Pneumonia")
+    )
+    record = {
+        "image_id": image_id,
+        "image_path": image_path,
+        "patient_id": patient_id,
+        "question": "Is there evidence of Pneumonia? Where?",
+        "answer": answer,
+        "label_class": "Pneumonia",
+        "label_kind": f"localization_{label_kind}",
+        "ground_truth_label": 1 if label_kind == "positive" else None,
+        "model_prediction": 1 if label_kind == "positive" else None,
+        "model_confidence": 0.0,
+        "model_abstained": label_kind != "positive",
+        "abstention_reason": "" if label_kind == "positive" else "low_confidence_band",
+        "calibrator_version": calibrator_version,
+        "image_provenance": image_provenance,
+    }
+    record.update(_phase4b_metadata(row, "Pneumonia", image_provenance))
+    record.update({key: value for key, value in row.items() if key not in record})
+    if is_smoke:
+        record["WARNING_DO_NOT_USE"] = SMOKE_WARNING
+    return record
+
+
+def _phase4b_metadata(
+    row: dict[str, str],
+    class_name: str | None,
+    image_provenance: str,
+) -> dict[str, Any]:
+    evidence_available = _parse_boolish(row.get("evidence_available")) or bool(
+        row.get("cam_uri") or row.get("bbox_normalized")
+    )
+    rsna_localization = _has_rsna_localization(row, image_provenance)
+    if class_name == "Pneumonia" and rsna_localization:
+        evidence_available = True
+    return {
+        "evidence_available": evidence_available,
+        "evidence_class": class_name if evidence_available else None,
+        "rsna_localization": rsna_localization,
+        "supervision_quality": "weak",
+        "source_phase": "4B",
+    }
+
+
+def _has_rsna_localization(row: dict[str, str], _image_provenance: str) -> bool:
+    if row.get("bbox_normalized") or row.get("cam_uri"):
+        return True
+    if all(row.get(key) not in {None, ""} for key in ["x", "y", "width", "height"]):
+        return True
+    box_count = row.get("box_count")
+    if box_count in {None, ""}:
+        return False
+    try:
+        return int(float(box_count)) > 0
+    except ValueError:
+        return False
+
+
+def _quadrant_from_row(row: dict[str, str]) -> str:
+    quadrant = row.get("quadrant")
+    if quadrant:
+        return quadrant
+    try:
+        x = float(row.get("x", row.get("x_center", "0.5")))
+        y = float(row.get("y", row.get("y_center", "0.5")))
+        width = float(row.get("width", "0"))
+        height = float(row.get("height", "0"))
+        image_width = float(row.get("image_width", row.get("width_px", "1")))
+        image_height = float(row.get("image_height", row.get("height_px", "1")))
+    except ValueError:
+        return "central"
+    cx = (x + width / 2.0) / max(image_width, 1.0)
+    cy = (y + height / 2.0) / max(image_height, 1.0)
+    if 0.4 <= cx <= 0.6 and 0.4 <= cy <= 0.6:
+        return "central"
+    vertical = "upper" if cy < 0.5 else "lower"
+    horizontal = "left" if cx < 0.5 else "right"
+    return f"{vertical}-{horizontal}"
+
+
+def _parse_boolish(value: str | None) -> bool:
+    return str(value).strip().lower() in {"1", "true", "yes", "y"}
 
 
 def _smoke_probabilities(row_index: int, num_classes: int) -> np.ndarray:

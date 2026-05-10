@@ -41,6 +41,7 @@ ReasonCode = Literal[
     "evidence_unavailable",
     "vlm_output_rejected",
 ]
+VQASource = Literal["rule_based", "vlm_zero_shot", "vlm_lora"]
 
 
 def is_available() -> bool:
@@ -104,6 +105,7 @@ class VQAResponse(BaseModel):
     reason: ReasonCode
     safety_disclaimer: str
     model_provenance: ModelProvenance
+    source: VQASource = "rule_based"
 
     @field_validator("safety_disclaimer")
     @classmethod

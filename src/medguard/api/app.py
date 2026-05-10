@@ -30,6 +30,7 @@ from medguard.api.schemas import (
     VQAResponse,
 )
 from medguard.data.nih import NIH_LABELS
+from medguard.models.vlm import VLMInferenceEngine, answer_with_optional_vlm, load_vlm
 from medguard.safety.abstention import apply_abstention, load_thresholds_from_config
 from medguard.safety.ood import OODDecision, detect_ood, load_ood_config
 from medguard.vqa.rule_based import answer_question, thresholds_config_with_classes
@@ -70,27 +71,37 @@ class MedGuardService:
         self,
         calibration_config: str | Path = "configs/calibration.yaml",
         ood_config: str | Path = "configs/ood.yaml",
+        vlm_config: str | Path = "configs/vlm_lora.yaml",
         provenance: ModelProvenance | None = None,
         fixed_probabilities: np.ndarray | None = None,
+        vlm_engine: VLMInferenceEngine | None = None,
+        enable_vlm: bool | None = None,
     ) -> None:
         self.provenance = provenance or default_model_provenance()
         self.thresholds = load_thresholds_from_config(
             thresholds_config_with_classes(_load_yaml(calibration_config))
         )
         self.ood_config = load_ood_config(ood_config)
+        self.vlm_config = _load_yaml(vlm_config)
         self.fixed_probabilities = fixed_probabilities
+        self.vlm_engine = vlm_engine or self._maybe_load_vlm(enable_vlm)
         self.last_predictions: dict[str, PredictionPayload] = {}
 
     def health(self) -> HealthResponse:
         """Return component availability."""
 
+        vlm_status = "disabled"
+        if self.vlm_engine is not None:
+            vlm_status = "loaded"
+        elif self.vlm_config.get("vlm", {}).get("enabled"):
+            vlm_status = "unavailable"
         return HealthResponse(
             status="ok",
             phase=4,
             components={
                 "classifier": "loaded",
                 "calibrator": "loaded",
-                "vlm": "disabled",
+                "vlm": vlm_status,
                 "ood": "loaded",
             },
             model_provenance=self.provenance,
@@ -156,7 +167,7 @@ class MedGuardService:
         ood = detect_ood(image, config=self.ood_config)
         probs = self._probabilities(image)
         evidence = _smoke_evidence(_class_from_question(question)) if ood.accepted else None
-        return answer_question(
+        rule_based = answer_question(
             question=question,
             probabilities=probs,
             thresholds=self.thresholds,
@@ -165,6 +176,23 @@ class MedGuardService:
             evidence=evidence,
             require_evidence_for_positive=True,
         )
+        if (
+            self.vlm_engine is None
+            or not ood.accepted
+            or ood.warning_only
+            or rule_based.abstained
+        ):
+            return rule_based
+        response, _ = answer_with_optional_vlm(
+            image=_ensure_pil(image),
+            question=question,
+            probabilities=probs,
+            thresholds=self.thresholds,
+            provenance=self.provenance,
+            evidence=evidence,
+            vlm_engine=self.vlm_engine,
+        )
+        return response
 
     def _probabilities(self, image: Image.Image | np.ndarray) -> np.ndarray:
         if self.fixed_probabilities is not None:
@@ -174,6 +202,17 @@ class MedGuardService:
         rng = np.random.default_rng(int.from_bytes(digest[:8], "big"))
         probs = rng.uniform(0.43, 0.47, size=len(NIH_LABELS))
         return probs.astype(np.float64)
+
+    def _maybe_load_vlm(self, enable_vlm: bool | None) -> VLMInferenceEngine | None:
+        requested = bool(self.vlm_config.get("vlm", {}).get("enabled", False))
+        if enable_vlm is not None:
+            requested = enable_vlm
+        if not requested:
+            return None
+        try:
+            return load_vlm(self.vlm_config)
+        except Exception:
+            return None
 
 
 def create_app(
@@ -264,6 +303,12 @@ def _decode_image_request(request: ImageRequest) -> Image.Image:
         return Image.open(io.BytesIO(raw)).convert("RGB")
     except Exception as exc:
         raise HTTPException(status_code=400, detail="Could not decode image payload.") from exc
+
+
+def _ensure_pil(image: Image.Image | np.ndarray) -> Image.Image:
+    if isinstance(image, Image.Image):
+        return image.convert("RGB")
+    return Image.fromarray(np.asarray(image).astype(np.uint8)).convert("RGB")
 
 
 def _ood_payload(decision: OODDecision) -> OODPayload:

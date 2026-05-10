@@ -4,7 +4,8 @@ project:
   description: "VQA + safety-aware assistant configuration."
 
 seed: 2026
-mode: rule_based
+mode: vlm_optional
+status: active
 
 vqa:
   templates_version: "v1"
@@ -15,21 +16,43 @@ vqa:
     val_jsonl: data/vqa/synthetic_qa.val.jsonl
     test_jsonl: data/vqa/synthetic_qa.test.jsonl
 
+# DEFERRED PHASE 4B PLACEHOLDER until a real NIH checkpoint exists; these
+# parameters are config-only unless GPU resources and VLM dependencies are local.
 vlm:
+  enabled: false
   base_model: "Qwen/Qwen2.5-VL-3B-Instruct"
   load_in_4bit: true
+  compute_dtype: float16
+  quantization:
+    method: nf4
+    double_quant: true
+    bnb_4bit_quant_type: nf4
+    bnb_4bit_use_double_quant: true
+  zero_shot:
+    output: results/vlm_zero_shot_eval.json
+    max_new_tokens: 128
+    temperature: 0.0
+    do_sample: false
+  adapter:
+    path: checkpoints/vlm_lora_adapter
+    save_adapter_only: true
   lora:
     r: 16
     alpha: 32
     target_modules: ["q_proj", "k_proj", "v_proj", "o_proj"]
     dropout: 0.05
+    task_type: CAUSAL_LM
   training:
+    enabled: false
     epochs: 3
     batch_size: 4
     grad_accum: 4
     learning_rate: 2.0e-4
+    scheduler: cosine
     warmup_steps: 100
     max_seq_length: 512
+    early_stopping_patience: 2
+    output_report: results/vlm_lora_train.json
 
 safety:
   banner_text: "constant in code; do not override here"
@@ -37,3 +60,4 @@ safety:
   enforce_provenance: true
   reject_on_clinical_token: true
   hallucination_filter: true
+  max_answer_tokens: 200
