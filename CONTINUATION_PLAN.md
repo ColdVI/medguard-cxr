@@ -13,7 +13,7 @@ The canonical local artifact paths now contain the real Colab run outputs:
 - Calibration completed with `make calibrate`.
 - RSNA pneumonia-specific grounding completed with `make eval-grounding-rsna`.
 - Phase 4A API/Gradio/VQA remains rule-based and smoke-tested.
-- Phase 4B VLM/QLoRA remains deferred and not trained.
+- Phase 4B VLM/QLoRA adapter training is implemented, disabled by default, and not trained in current artifacts.
 
 ## 2. Completed Commands
 
@@ -39,7 +39,7 @@ The reported Colab training evidence was: `Training completed in NIH mode. Best 
 | `results/grounding_rsna_eval.json` | real | RSNA Pneumonia/Lung Opacity evaluation. |
 | `results/overlays/rsna/rsna_grid.png` | real engineering artifact | RSNA Grad-CAM grid for review. |
 | `results/vlm_zero_shot_eval.json` | blocked | Missing VQA test JSONL. |
-| `results/vlm_lora_train.json` | deferred | QLoRA not trained; epochs completed 0. |
+| `results/vlm_lora_train.json` | deferred/currently untrained | QLoRA adapter training code exists; current artifact has epochs completed 0. |
 
 ## 4. Commands To Run Next
 
@@ -111,14 +111,15 @@ Do not claim QLoRA/VLM was trained until `results/vlm_lora_train.json` records r
 
 ## 9. Optional Phase 4B Gate
 
-Phase 4B may be reactivated only after the owner explicitly chooses to do so. The minimum command order is:
+Phase 4B may be reactivated only after the owner explicitly chooses to do so. The minimum Colab command order is:
 
 ```bash
+pip install -e ".[dev,vlm]"
 make vqa-dataset
 make eval-vlm-zero-shot
-make train-vlm
+python3 scripts/train_vlm_lora.py --config configs/vlm_lora.yaml --enable-training --max-steps 200 --limit-train 512 --limit-val 128
 make eval-vlm-lora
 make eval-vlm-compare
 ```
 
-Before those commands complete successfully, the public status remains: **VLM/QLoRA deferred, not trained**.
+Remove the `--max-steps` and limit flags only when you intentionally want a longer run. Before the training/evaluation commands complete successfully, the public status remains: **VLM/QLoRA implemented, not trained**.

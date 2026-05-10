@@ -10,7 +10,7 @@
 - Checkpoint: `checkpoints/baseline_nih_best.pt` as a local/generated artifact; the binary checkpoint is ignored by git by default.
 - Current status: trained, evaluated, calibrated, and run through RSNA pneumonia-specific grounding.
 - VQA status: Phase 4A rule-based/fixed-template only.
-- VLM/QLoRA status: not trained; deferred optional extension.
+- VLM/QLoRA status: adapter-only training path implemented, not trained; deferred optional extension.
 
 ## Intended Use
 
@@ -69,7 +69,7 @@ These are research evaluation metrics for a pneumonia-specific cross-dataset che
 
 Phase 4A is rule-based/fixed-template. It keeps safety disclaimers visible and uses abstention/OOD checks. The default API/Gradio shell remains smoke-tested and template-driven; it should not be described as a real clinical assistant.
 
-Phase 4B VLM/QLoRA scaffolding exists but is not trained. Current VLM reports show blocked/deferred status and `epochs_completed=0`.
+Phase 4B VLM/QLoRA adapter training is implemented but remains disabled by default and is not trained in the current public artifacts. Current VLM reports show blocked/deferred status and `epochs_completed=0`.
 
 ## Ethical Considerations
 

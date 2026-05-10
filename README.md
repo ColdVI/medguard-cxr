@@ -27,7 +27,7 @@ MEDGUARD-CXR is a safety-aware chest X-ray engineering prototype focused on mult
 - RSNA Pneumonia Detection Challenge 2018 grounding validation for `Pneumonia -> Lung Opacity`.
 - Grad-CAM overlay generation for confidence-gated RSNA examples.
 - Rule-based VQA/API/Gradio scaffolding with safety disclaimers.
-- Optional Phase 4B VLM/QLoRA scaffolding, disabled and untrained by default.
+- Optional Phase 4B VLM/QLoRA adapter-training path, disabled and untrained by default.
 
 ## What Has Actually Run
 
@@ -41,11 +41,11 @@ MEDGUARD-CXR is a safety-aware chest X-ray engineering prototype focused on mult
 | Gradio build | `build_demo()` smoke check | runtime smoke check | completed | `Blocks` object created | Demo shell builds locally; it is not a validated clinical app. |
 | Rule-based VQA | tests | `tests/test_vqa_*` | smoke-tested | fixed-template safety path | Rule-based only; no free-text VLM claim. |
 | VLM zero-shot | `make eval-vlm-zero-shot` | `results/vlm_zero_shot_eval.json` | blocked | test JSONL missing | Experimental path only. |
-| VLM/QLoRA | `make train-vlm` | `results/vlm_lora_train.json` | deferred | epochs completed 0, blocked smoke check | QLoRA was not trained. |
+| VLM/QLoRA | `make train-vlm` or explicit Colab script command | `results/vlm_lora_train.json` | implemented but not run | epochs completed 0 in current artifact | QLoRA adapter training code exists, but no adapter has been trained yet. |
 
 ## What Has Not Been Run Yet
 
-- No QLoRA fine-tuning has been run.
+- No QLoRA fine-tuning has been run yet, although the adapter-only training path is now implemented.
 - No free-text VLM has been validated.
 - No prospective or clinical validation has been performed.
 - No subgroup performance audit has been completed.
@@ -65,9 +65,9 @@ MEDGUARD-CXR is a safety-aware chest X-ray engineering prototype focused on mult
 | `results/overlays/rsna/rsna_grid.png` | yes | `make eval-grounding-rsna` | real engineering artifact | yes | yes | Grad-CAM overlay grid for review, not clinical evidence. |
 | API health smoke result | yes | TestClient `/health` | smoke-tested shell | yes | yes | VLM disabled; default API probabilities remain smoke/template. |
 | Gradio smoke result | yes | `build_demo()` | smoke-tested shell | yes | yes | Builds local UI shell. |
-| VQA generator output | no | `make vqa-dataset` | missing | yes | yes | Pending if VLM/QLoRA is reactivated. |
+| VQA generator output | pending local rerun | `make vqa-dataset` | generated on demand | yes | yes | Uses RSNA manifest by default for weak pneumonia-specific VQA supervision. |
 | `results/vlm_zero_shot_eval.json` | yes | `make eval-vlm-zero-shot` smoke/blocker | blocked | yes | yes | Missing VQA test JSONL. |
-| `results/vlm_lora_train.json` | yes | `make train-vlm --smoke` style check | blocked/deferred | yes | yes | `epochs_completed=0`; QLoRA not trained. |
+| `results/vlm_lora_train.json` | yes | `make train-vlm` or explicit script command | blocked/deferred | yes | yes | Current artifact has `epochs_completed=0`; QLoRA not trained yet. |
 
 ## Scorecard
 

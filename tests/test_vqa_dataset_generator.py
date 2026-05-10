@@ -93,6 +93,25 @@ def test_manifest_reader_requires_image_id_and_path(tmp_path: Path) -> None:
     assert read_manifest(path)[0]["image_id"] == "p1_0.png"
 
 
+def test_manifest_reader_accepts_rsna_patient_id(tmp_path: Path) -> None:
+    path = tmp_path / "rsna_manifest.csv"
+    with path.open("w", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=["patientId", "target", "path"])
+        writer.writeheader()
+        writer.writerow(
+            {
+                "patientId": "rsna-patient-1",
+                "target": "1",
+                "path": "data/rsna/stage_2_train_images/rsna-patient-1.dcm",
+            }
+        )
+
+    record = read_manifest(path)[0]
+
+    assert record["image_id"] == "rsna-patient-1"
+    assert record["patient_id"] == "rsna-patient-1"
+
+
 def test_generator_refuses_mixed_provenance_for_training_jsonl(tmp_path: Path) -> None:
     path = tmp_path / "mixed.jsonl"
     records = [
@@ -149,3 +168,26 @@ def test_generator_adds_localization_only_when_box_metadata_exists() -> None:
     records = generate_dataset_records(manifest, _thresholds(), n_distractors=1)
 
     assert any(str(record["label_kind"]).startswith("localization_") for record in records)
+
+
+def test_generator_uses_rsna_target_for_real_pneumonia_records() -> None:
+    manifest = [
+        {
+            "image_id": "patient0",
+            "path": "data/rsna/image0.dcm",
+            "target": "1",
+        }
+    ]
+
+    records = generate_dataset_records(
+        manifest,
+        _thresholds(),
+        n_distractors=1,
+        is_smoke=False,
+    )
+
+    pneumonia_records = [
+        record for record in records if record.get("label_class") == "Pneumonia"
+    ]
+    assert any(record["label_kind"] == "positive" for record in pneumonia_records)
+    assert all("WARNING_DO_NOT_USE" not in record for record in records)

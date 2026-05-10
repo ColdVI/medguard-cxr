@@ -3,12 +3,13 @@
   "adapter_path": "checkpoints/vlm_lora_adapter",
   "base_model": "Qwen/Qwen2.5-VL-3B-Instruct",
   "best_val_loss": null,
-  "blocked_reason": "smoke_check_requested_no_training",
+  "blocked_reason": "training_disabled_in_config",
   "dependency_status": {
     "available": [
       "torch",
       "transformers",
-      "peft"
+      "peft",
+      "accelerate"
     ],
     "missing": [
       "bitsandbytes"
@@ -17,7 +18,8 @@
       "torch",
       "transformers",
       "peft",
-      "bitsandbytes"
+      "bitsandbytes",
+      "accelerate"
     ]
   },
   "early_stopped": true,
@@ -26,6 +28,6 @@
   "model_quality_evidence": false,
   "seed": 2026,
   "status": "blocked",
-  "train_records": 0,
-  "val_records": 0
+  "train_records": 21932,
+  "val_records": 2764
 }

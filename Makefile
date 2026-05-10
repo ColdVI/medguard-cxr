@@ -27,8 +27,8 @@ eval-grounding-rsna:
 calibrate:
 	$(PYTHON) scripts/calibrate.py --config configs/calibration.yaml
 
-vqa-dataset:
-	$(PYTHON) scripts/generate_vqa_dataset.py --input-manifest data/sample_manifest.csv
+vqa-dataset: prepare-rsna
+	$(PYTHON) scripts/generate_vqa_dataset.py --config configs/vlm_lora.yaml --input-manifest results/rsna_manifest.csv
 
 train-vlm:
 	$(PYTHON) scripts/train_vlm_lora.py --config configs/vlm_lora.yaml

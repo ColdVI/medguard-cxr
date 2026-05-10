@@ -42,13 +42,17 @@ def main() -> None:
     args = _parse_args()
     config = _load_yaml(args.config)
     baseline = _load_yaml(args.baseline_config)
-    records = read_manifest(args.input_manifest)
-    if args.limit is not None:
-        records = records[: args.limit]
+    input_manifest = Path(args.input_manifest or config["vqa"].get("input_manifest", ""))
+    records = read_manifest(input_manifest)
+    limit = args.limit
+    if limit is None:
+        limit = config.get("vqa", {}).get("max_manifest_records")
+    if limit is not None:
+        records = records[: int(limit)]
     thresholds = load_thresholds_from_config(
         thresholds_config_with_classes(_load_yaml("configs/calibration.yaml"))
     )
-    output_base = Path(args.output)
+    output_base = Path(args.output or "data/vqa/synthetic_qa.jsonl")
     generated = generate_dataset_records(
         manifest_records=records,
         thresholds=thresholds,
@@ -85,10 +89,7 @@ def generate_dataset_records(
         image_path = row["path"]
         patient_id = row.get("patient_id") or infer_patient_id(image_id)
         provenance = row.get("image_provenance") or infer_image_provenance(image_path, is_smoke)
-        probs = _smoke_probabilities(row_index, len(classes)) if is_smoke else _smoke_probabilities(
-            row_index,
-            len(classes),
-        )
+        probs = _probabilities_for_row(row, row_index, classes, is_smoke=is_smoke)
         decisions = apply_abstention(probs.reshape(1, -1), thresholds)[0]
         negatives: list[dict[str, Any]] = []
 
@@ -235,9 +236,23 @@ def read_manifest(path: str | Path) -> list[dict[str, str]]:
 
     with Path(path).open(newline="") as handle:
         reader = csv.DictReader(handle)
-        if not {"image_id", "path"}.issubset(reader.fieldnames or set()):
-            raise ValueError("VQA manifest must contain image_id and path columns.")
-        return [dict(row) for row in reader]
+        fieldnames = set(reader.fieldnames or set())
+        has_image_id = bool({"image_id", "patientId", "patient_id"} & fieldnames)
+        if not has_image_id or "path" not in fieldnames:
+            raise ValueError("VQA manifest must contain image_id/patientId and path columns.")
+        output: list[dict[str, str]] = []
+        for row in reader:
+            normalized = dict(row)
+            image_id = (
+                normalized.get("image_id")
+                or normalized.get("patientId")
+                or normalized.get("patient_id")
+            )
+            if image_id:
+                normalized.setdefault("image_id", image_id)
+                normalized.setdefault("patient_id", image_id)
+            output.append(normalized)
+        return output
 
 
 def patient_disjoint_split(
@@ -557,6 +572,37 @@ def _smoke_probabilities(row_index: int, num_classes: int) -> np.ndarray:
     return probs
 
 
+def _probabilities_for_row(
+    row: dict[str, str],
+    row_index: int,
+    classes: list[str],
+    is_smoke: bool,
+) -> np.ndarray:
+    if is_smoke:
+        return _smoke_probabilities(row_index, len(classes))
+    probs = np.full(len(classes), 0.10, dtype=np.float64)
+    parsed_any = False
+    for class_index, class_name in enumerate(classes):
+        keys = [
+            f"prob_{class_name}",
+            f"prob_{class_name.lower()}",
+            f"{class_name}_probability",
+            f"{class_name.lower()}_probability",
+        ]
+        for key in keys:
+            if row.get(key) not in {None, ""}:
+                probs[class_index] = float(row[key])
+                parsed_any = True
+                break
+    if parsed_any:
+        return probs
+    target = row.get("target") or row.get("Target")
+    if target not in {None, ""} and "Pneumonia" in classes:
+        probs[classes.index("Pneumonia")] = 0.82 if _parse_boolish(target) else 0.10
+        return probs
+    return _smoke_probabilities(row_index, len(classes))
+
+
 def _artifact_version(path: str | Path) -> str:
     artifact = Path(path)
     if not artifact.exists():
@@ -582,8 +628,15 @@ def _write_generation_summary(
         "config_project": config.get("project", {}).get("name", "medguard-cxr"),
         "output_stem": str(output_base.with_suffix("")),
         "split_counts": {split: len(records) for split, records in splits.items()},
-        "WARNING_DO_NOT_USE": SMOKE_WARNING,
+        "model_quality_evidence": False,
+        "note": "Synthetic VQA supervision for Phase 4B training; not a clinical metric.",
     }
+    if any(
+        record.get("WARNING_DO_NOT_USE") == SMOKE_WARNING
+        for records in splits.values()
+        for record in records
+    ):
+        summary["WARNING_DO_NOT_USE"] = SMOKE_WARNING
     summary_path.parent.mkdir(parents=True, exist_ok=True)
     summary_path.write_text(json.dumps(summary, indent=2, sort_keys=True))
 
@@ -594,8 +647,8 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--baseline-config", default="configs/baseline_nih.yaml")
     parser.add_argument("--checkpoint", default="checkpoints/baseline_nih_best.pt")
     parser.add_argument("--calibrator", default="calibrators/nih_temp_scaling.pkl")
-    parser.add_argument("--input-manifest", required=True)
-    parser.add_argument("--output", default="data/vqa/synthetic_qa.jsonl")
+    parser.add_argument("--input-manifest")
+    parser.add_argument("--output")
     parser.add_argument("--seed", type=int, default=2026)
     parser.add_argument("--n-distractors", type=int, default=2)
     parser.add_argument("--include-uncertain", type=_parse_bool, default=True)

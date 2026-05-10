@@ -5,22 +5,26 @@ project:
 
 seed: 2026
 mode: vlm_optional
-status: active
+status: implemented_disabled_by_default
 
 vqa:
   templates_version: "v1"
   n_distractors_per_image: 2
   include_uncertain: true
+  input_manifest: results/rsna_manifest.csv
+  max_manifest_records: 4096
   output:
     train_jsonl: data/vqa/synthetic_qa.train.jsonl
     val_jsonl: data/vqa/synthetic_qa.val.jsonl
     test_jsonl: data/vqa/synthetic_qa.test.jsonl
 
-# DEFERRED PHASE 4B PLACEHOLDER until a real NIH checkpoint exists; these
-# parameters are config-only unless GPU resources and VLM dependencies are local.
+# Phase 4B remains optional. Training is disabled by default even though the
+# adapter-only PEFT/QLoRA loop is implemented; enable it explicitly on a GPU
+# runtime after VQA JSONL files exist.
 vlm:
   enabled: false
   base_model: "Qwen/Qwen2.5-VL-3B-Instruct"
+  trust_remote_code: true
   load_in_4bit: true
   compute_dtype: float16
   quantization:
@@ -44,14 +48,25 @@ vlm:
     task_type: CAUSAL_LM
   training:
     enabled: false
-    classifier_checkpoint_is_smoke: true
+    classifier_checkpoint_is_smoke: false
     epochs: 3
     batch_size: 4
+    eval_batch_size: 1
     grad_accum: 4
     learning_rate: 2.0e-4
     scheduler: cosine
     warmup_steps: 100
     max_seq_length: 512
+    max_steps:
+    max_train_samples:
+    max_val_samples:
+    logging_steps: 10
+    save_strategy: epoch
+    eval_strategy: epoch
+    save_total_limit: 2
+    optim: paged_adamw_8bit
+    gradient_checkpointing: true
+    overwrite_output_dir: true
     early_stopping_patience: 2
     output_report: results/vlm_lora_train.json
 

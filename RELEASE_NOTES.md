@@ -31,7 +31,7 @@ Release scope: research and engineering portfolio artifact. Not for clinical use
 
 - Optional VQA JSONL generation.
 - VLM zero-shot evaluation.
-- QLoRA fine-tuning.
+- QLoRA fine-tuning run and evaluation; adapter-only training code is available but no adapter has been trained in the current artifacts.
 - VLM/QLoRA comparison review.
 - Subgroup and error analysis.
 

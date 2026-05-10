@@ -13,7 +13,7 @@ Calibration & \texttt{make calibrate} & completed & \texttt{results/calibration\
 RSNA grounding & \texttt{make eval-grounding-rsna} & completed & \texttt{results/grounding\_rsna\_eval.json} & pneumonia AUROC 0.8077; pointing 0.5138; IoU 0.2551 & pneumonia/lung-opacity only \\
 API health & TestClient & smoke-tested & runtime check & HTTP 200; VLM disabled & app shell wiring only \\
 Gradio & \texttt{build\_demo()} & smoke-tested & runtime check & Blocks object created & local demo shell only \\
-VLM/QLoRA & \texttt{make train-vlm} & deferred & \texttt{results/vlm\_lora\_train.json} & epochs completed 0 & not trained \\
+VLM/QLoRA & explicit Phase 4B script & implemented, not run & \texttt{results/vlm\_lora\_train.json} & epochs completed 0 & adapter training path exists; no trained adapter \\
 \bottomrule
 \end{longtable}
 
@@ -51,6 +51,6 @@ Artifact & Exists & Source & Status & Notes \\
 \texttt{results/grounding\_rsna\_eval.json} & yes & \texttt{make eval-grounding-rsna} & real & pneumonia only \\
 \texttt{results/overlays/rsna/rsna\_grid.png} & yes & \texttt{make eval-grounding-rsna} & review artifact & not clinical evidence \\
 \texttt{data/vqa/*.jsonl} & no & \texttt{make vqa-dataset} & missing & needed before VLM eval \\
-\texttt{results/vlm\_lora\_train.json} & yes & smoke/blocker check & deferred & QLoRA not trained \\
+\texttt{results/vlm\_lora\_train.json} & yes & smoke/blocker check & not trained & adapter training implemented; current artifact has zero epochs \\
 \bottomrule
 \end{longtable}

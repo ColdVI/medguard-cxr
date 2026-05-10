@@ -126,7 +126,7 @@ def is_available() -> bool:
 def dependency_status() -> dict[str, list[str]]:
     """Report optional Phase 4B dependency availability without importing them."""
 
-    required = ["torch", "transformers", "peft", "bitsandbytes"]
+    required = ["torch", "transformers", "peft", "bitsandbytes", "accelerate"]
     missing = [name for name in required if importlib.util.find_spec(name) is None]
     return {
         "required": required,
@@ -155,6 +155,7 @@ def load_vlm(config: Mapping[str, Any]) -> VLMInferenceEngine:
 
     vlm_cfg = dict(config.get("vlm", {}))
     model_name = str(vlm_cfg.get("base_model", "Qwen/Qwen2.5-VL-3B-Instruct"))
+    trust_remote_code = bool(vlm_cfg.get("trust_remote_code", True))
     zero_shot_cfg = dict(vlm_cfg.get("zero_shot", {}))
     quant_cfg = dict(vlm_cfg.get("quantization", {}))
     quantization_config = None
@@ -165,14 +166,19 @@ def load_vlm(config: Mapping[str, Any]) -> VLMInferenceEngine:
             bnb_4bit_use_double_quant=bool(
                 quant_cfg.get("bnb_4bit_use_double_quant", True)
             ),
-            bnb_4bit_compute_dtype=torch.float16,
+            bnb_4bit_compute_dtype=_torch_dtype(
+                torch,
+                str(vlm_cfg.get("compute_dtype", "float16")),
+            ),
         )
 
-    processor = AutoProcessor.from_pretrained(model_name)
+    processor = AutoProcessor.from_pretrained(model_name, trust_remote_code=trust_remote_code)
     model = ModelClass.from_pretrained(
         model_name,
         quantization_config=quantization_config,
         device_map="auto",
+        torch_dtype=_torch_dtype(torch, str(vlm_cfg.get("compute_dtype", "float16"))),
+        trust_remote_code=trust_remote_code,
     )
 
     adapter_cfg = dict(vlm_cfg.get("adapter", {}))
@@ -416,6 +422,17 @@ def _answer_direction(answer: str, class_name: str) -> Literal["positive", "nega
     if f"consistent with {finding}" in lowered or f"evidence of {finding}" in lowered:
         return "positive"
     return "uncertain"
+
+
+def _torch_dtype(torch: Any, name: str) -> Any:
+    normalized = name.lower()
+    if normalized in {"bf16", "bfloat16"}:
+        return torch.bfloat16
+    if normalized in {"fp16", "float16", "half"}:
+        return torch.float16
+    if normalized in {"fp32", "float32"}:
+        return torch.float32
+    raise ValueError(f"Unsupported VLM compute dtype: {name}")
 
 
 def _first_banned_token(answer: str) -> str | None:

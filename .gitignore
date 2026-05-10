@@ -34,6 +34,7 @@ calibrators/*
 
 checkpoints/
 data/nih/
+data/vqa/
 data/vindr/
 data/rsna/
 src/medguard/data/rsna/

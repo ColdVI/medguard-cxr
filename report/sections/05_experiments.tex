@@ -32,11 +32,12 @@ make eval-grounding-rsna
 \subsection{Pending or Deferred Commands}
 
 \begin{verbatim}
+pip install -e ".[dev,vlm]"
 make vqa-dataset
 make eval-vlm-zero-shot
-make train-vlm
+python3 scripts/train_vlm_lora.py --config configs/vlm_lora.yaml --enable-training
 make eval-vlm-lora
 make eval-vlm-compare
 \end{verbatim}
 
-The VLM/QLoRA commands are deferred and should not be described as completed.
+The VLM/QLoRA commands are implemented but have not been run to completion in the current artifacts, so they should not be described as completed.
