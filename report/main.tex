@@ -1,0 +1,33 @@
+\documentclass[11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[margin=1in]{geometry}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{longtable}
+\usepackage{float}
+
+\title{MedGuard-CXR: A Safety-Aware Chest X-ray Pneumonia Detection and Evidence Prototype\\
+\large Current NIH Classifier Training Results and Continuation Plan for Calibration, RSNA Grounding, and Safe VQA}
+\author{Anıl Keskin}
+\date{May 10, 2026}
+
+\begin{document}
+\maketitle
+
+\begin{center}
+\textbf{Safety notice:} MedGuard-CXR is a research and engineering prototype only. It is not a clinical diagnostic tool and must not be used for patient care.
+\end{center}
+
+\input{sections/01_introduction}
+\input{sections/02_datasets}
+\input{sections/03_methodology}
+\input{sections/04_system_design}
+\input{sections/05_experiments}
+\input{sections/06_results}
+\input{sections/07_limitations_and_future_work}
+\input{sections/appendix}
+
+\end{document}

@@ -1,0 +1,17 @@
+\section{Datasets}
+
+\subsection{NIH ChestX-ray14}
+
+NIH ChestX-ray14 is used for broad image-level multi-label classifier training and evaluation. The labels are silver-standard labels mined from reports, so they may contain label noise and reporting bias. The current classifier was trained through the repository command \texttt{make train}.
+
+\subsection{RSNA Pneumonia Detection Challenge 2018}
+
+RSNA Pneumonia Detection Challenge 2018 is used for pneumonia-specific grounding validation. The only active cross-dataset mapping is NIH \texttt{Pneumonia} to RSNA \texttt{Lung Opacity}. RSNA boxes are used as provider-supplied lung-opacity annotations for the public training split; hidden Kaggle test labels are not used.
+
+\subsection{VinDr-CXR}
+
+VinDr-CXR is deferred future work due to access friction. It is not an active dependency for the current release.
+
+\subsection{Dataset Limitations}
+
+The datasets do not establish clinical utility. NIH image-level labels are noisy. RSNA grounding is pneumonia/lung-opacity specific and does not support broad multi-abnormality localization. No subgroup audit has been completed.

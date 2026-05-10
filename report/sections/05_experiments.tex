@@ -1,0 +1,42 @@
+\section{Experiments}
+
+\subsection{Environment}
+
+The real classifier run was performed in Colab with CUDA. The owner reported the training command:
+
+\begin{verbatim}
+make train
+\end{verbatim}
+
+This maps to:
+
+\begin{verbatim}
+python3 scripts/train_classifier.py --config configs/baseline_nih.yaml
+\end{verbatim}
+
+The reported training completion line was:
+
+\begin{verbatim}
+Training completed in NIH mode. Best epoch: 4
+\end{verbatim}
+
+\subsection{Completed Commands}
+
+\begin{verbatim}
+make train
+make eval
+make calibrate
+make eval-grounding-rsna
+\end{verbatim}
+
+\subsection{Pending or Deferred Commands}
+
+\begin{verbatim}
+make vqa-dataset
+make eval-vlm-zero-shot
+make train-vlm
+make eval-vlm-lora
+make eval-vlm-compare
+\end{verbatim}
+
+The VLM/QLoRA commands are deferred and should not be described as completed.

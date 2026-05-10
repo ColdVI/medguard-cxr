@@ -7,6 +7,7 @@ __pycache__/
 logs/
 .venv/
 venv/
+medguard_colab_results/
 build/
 dist/
 *.egg-info/

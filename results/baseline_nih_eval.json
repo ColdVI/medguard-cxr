@@ -1,87 +1,86 @@
 {
-  "WARNING_DO_NOT_USE": "synthetic_smoke_only_not_a_real_evaluation",
-  "mode": "smoke_no_dataset",
-  "reason": "Configured NIH dataset not found.",
-  "num_samples": 8,
+  "mode": "nih",
+  "checkpoint_loaded": true,
+  "num_samples": 25596,
   "per_class": {
     "Atelectasis": {
-      "auroc": null,
-      "auprc": null,
-      "sensitivity_at_90_specificity": null
+      "auroc": 0.7568713695011179,
+      "auprc": 0.32191927060723,
+      "sensitivity_at_90_specificity": 0.36810003049710277
     },
     "Cardiomegaly": {
-      "auroc": null,
-      "auprc": null,
-      "sensitivity_at_90_specificity": null
+      "auroc": 0.8743784889053178,
+      "auprc": 0.3149213240872787,
+      "sensitivity_at_90_specificity": 0.6323666978484564
     },
     "Effusion": {
-      "auroc": null,
-      "auprc": null,
-      "sensitivity_at_90_specificity": null
+      "auroc": 0.821528503400889,
+      "auprc": 0.4995844945777065,
+      "sensitivity_at_90_specificity": 0.4772434521253757
     },
     "Infiltration": {
-      "auroc": null,
-      "auprc": null,
-      "sensitivity_at_90_specificity": null
+      "auroc": 0.6926080516393637,
+      "auprc": 0.3879955127403566,
+      "sensitivity_at_90_specificity": 0.25867146596858637
     },
     "Mass": {
-      "auroc": null,
-      "auprc": null,
-      "sensitivity_at_90_specificity": null
+      "auroc": 0.804969601046905,
+      "auprc": 0.28972197239996683,
+      "sensitivity_at_90_specificity": 0.48112128146453087
     },
     "Nodule": {
-      "auroc": null,
-      "auprc": null,
-      "sensitivity_at_90_specificity": null
+      "auroc": 0.7446115763988852,
+      "auprc": 0.2114639694126256,
+      "sensitivity_at_90_specificity": 0.37030191004313
     },
     "Pneumonia": {
-      "auroc": null,
-      "auprc": null,
-      "sensitivity_at_90_specificity": null
+      "auroc": 0.7028906107497217,
+      "auprc": 0.050520952220977924,
+      "sensitivity_at_90_specificity": 0.27387387387387385
     },
     "Pneumothorax": {
-      "auroc": null,
-      "auprc": null,
-      "sensitivity_at_90_specificity": null
+      "auroc": 0.84933537049684,
+      "auprc": 0.3934587135344799,
+      "sensitivity_at_90_specificity": 0.5703564727954972
     },
     "Consolidation": {
-      "auroc": null,
-      "auprc": null,
-      "sensitivity_at_90_specificity": null
+      "auroc": 0.7255015144506756,
+      "auprc": 0.1445417677578895,
+      "sensitivity_at_90_specificity": 0.2650137741046832
     },
     "Edema": {
-      "auroc": null,
-      "auprc": null,
-      "sensitivity_at_90_specificity": null
+      "auroc": 0.8391357617598953,
+      "auprc": 0.15517449094120359,
+      "sensitivity_at_90_specificity": 0.4810810810810811
     },
     "Emphysema": {
-      "auroc": null,
-      "auprc": null,
-      "sensitivity_at_90_specificity": null
+      "auroc": 0.9090400044000067,
+      "auprc": 0.37875895575564467,
+      "sensitivity_at_90_specificity": 0.7465690759377859
     },
     "Fibrosis": {
-      "auroc": null,
-      "auprc": null,
-      "sensitivity_at_90_specificity": null
+      "auroc": 0.8198461676915606,
+      "auprc": 0.09751663417612408,
+      "sensitivity_at_90_specificity": 0.5241379310344828
     },
     "Pleural_Thickening": {
-      "auroc": null,
-      "auprc": null,
-      "sensitivity_at_90_specificity": null
+      "auroc": 0.7807620410880529,
+      "auprc": 0.1426930956946476,
+      "sensitivity_at_90_specificity": 0.37445319335083116
     },
     "Hernia": {
-      "auroc": null,
-      "auprc": null,
-      "sensitivity_at_90_specificity": null
+      "auroc": 0.9298378200979097,
+      "auprc": 0.37045951376013697,
+      "sensitivity_at_90_specificity": 0.7674418604651163
     }
   },
-  "macro_auroc": null,
-  "macro_auroc_valid_class_count": 0,
-  "macro_auprc": null,
-  "macro_auprc_valid_class_count": 0,
-  "macro_sensitivity_at_90_specificity": null,
-  "macro_sensitivity_at_90_specificity_valid_class_count": 0,
-  "probability_source": "not_computed_smoke_mode",
+  "macro_auroc": 0.8036654915447957,
+  "macro_auroc_valid_class_count": 14,
+  "macro_auprc": 0.26848076197616205,
+  "macro_auprc_valid_class_count": 14,
+  "macro_sensitivity_at_90_specificity": 0.4707665786136096,
+  "macro_sensitivity_at_90_specificity_valid_class_count": 14,
+  "probability_source": "torch.sigmoid(raw_logits)",
   "threshold_tuning": "none",
   "label_quality": "NIH labels are noisy silver-standard NLP-mined labels.",
   "localization": "not_evaluated_nih_image_level_labels_only"

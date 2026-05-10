@@ -1,0 +1,7 @@
+\section{Limitations and Future Work}
+
+The current artifacts do not support clinical use. There has been no prospective evaluation, no deployment review, and no subgroup performance audit.
+
+NIH labels are noisy silver-standard labels. Calibration improved ECE only slightly and remains imperfect. RSNA grounding is limited to NIH \texttt{Pneumonia} evaluated against RSNA \texttt{Lung Opacity}; no other localization claim is supported.
+
+The VQA path is rule-based and fixed-template. It is not a free-text medical chatbot. QLoRA/VLM is deferred and not trained. Future work may include VQA dataset generation, zero-shot VLM evaluation, optional QLoRA training, VLM comparison, and Claude/Gemini review, but none of those should be claimed before their artifacts exist.

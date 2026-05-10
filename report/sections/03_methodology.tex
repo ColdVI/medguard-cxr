@@ -1,0 +1,17 @@
+\section{Methodology}
+
+\subsection{Classifier}
+
+The image classifier is a DenseNet121 model with a multi-label output head. The model returns raw logits during training. Training uses \texttt{BCEWithLogitsLoss}; sigmoid conversion is applied only during evaluation and inference.
+
+\subsection{Calibration}
+
+Calibration uses temperature scaling fit on validation logits and reports expected calibration error (ECE) before and after calibration. The saved calibrator lives at \texttt{calibrators/nih\_temp\_scaling.pkl}.
+
+\subsection{RSNA Grounding}
+
+The RSNA grounding path evaluates NIH \texttt{Pneumonia} probability against RSNA \texttt{Lung Opacity}. Grad-CAM overlays are generated only for non-abstained, confidence-gated examples. The overlays are weak engineering artifacts, not clinical evidence.
+
+\subsection{VQA/API/OOD}
+
+Phase 4A remains rule-based and fixed-template. It uses safety disclaimers, OOD checks, abstention behavior, and evidence-gating rules. The optional VLM/QLoRA path exists as scaffolding but has not been trained.

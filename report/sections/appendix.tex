@@ -1,0 +1,48 @@
+\appendix
+\section{Appendix}
+
+\subsection{Exact Commands}
+
+\begin{verbatim}
+make install
+make lint
+make test
+make train
+make eval
+make calibrate
+make prepare-rsna
+make eval-grounding-rsna
+\end{verbatim}
+
+\subsection{Next Commands}
+
+For reproduction in a fresh GPU environment:
+
+\begin{verbatim}
+git clone https://github.com/ColdVI/medguard-cxr.git
+cd medguard-cxr
+pip install -e ".[dev]"
+make lint
+make test
+make train
+make eval
+make calibrate
+make prepare-rsna
+make eval-grounding-rsna
+\end{verbatim}
+
+\subsection{Release Checklist}
+
+\begin{itemize}
+  \item Real classifier checkpoint present.
+  \item NIH evaluation JSON present.
+  \item Calibration report and reliability diagram present.
+  \item RSNA pneumonia grounding report present.
+  \item README/model card/datasheet updated with real numbers only.
+  \item VLM/QLoRA explicitly marked not trained.
+  \item Research-only disclaimer visible.
+\end{itemize}
+
+\subsection{Do Not Claim}
+
+Do not claim clinical validation, patient-care readiness, broad multi-abnormality localization, QLoRA training, free-text VLM behavior, or subgroup fairness from the current artifacts.

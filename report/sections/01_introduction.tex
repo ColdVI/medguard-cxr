@@ -1,0 +1,7 @@
+\section{Introduction}
+
+MedGuard-CXR is a safety-aware chest X-ray engineering prototype. The project combines a DenseNet121 image classifier, calibration and abstention logic, pneumonia-specific RSNA grounding checks, and a rule-based VQA/API/demo layer that keeps research-only disclaimers visible.
+
+The purpose of this report is to publish the current real NIH classifier results and to preserve the continuation plan for calibration, RSNA grounding, and safe VQA work. The system is not a clinical diagnostic tool, has not been prospectively evaluated, and must not be used for patient care.
+
+The current repository status is \textbf{trained\_evaluated\_calibrated\_grounded}: NIH classifier training, NIH evaluation, calibration, and RSNA Pneumonia grounding artifacts exist. Phase 4A VQA/API/Gradio remains rule-based and smoke-tested. Phase 4B VLM/QLoRA is deferred and not trained.

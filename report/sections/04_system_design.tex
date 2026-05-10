@@ -1,0 +1,14 @@
+\section{System Design}
+
+Core implementation lives under \texttt{src/medguard/}. Command-line workflows live under \texttt{scripts/}, configuration under \texttt{configs/}, and generated artifacts under \texttt{results/}, \texttt{calibrators/}, and \texttt{checkpoints/}.
+
+\begin{itemize}
+  \item \texttt{scripts/train\_classifier.py}: NIH DenseNet121 training.
+  \item \texttt{scripts/evaluate.py}: NIH classifier evaluation.
+  \item \texttt{scripts/calibrate.py}: temperature scaling and reliability outputs.
+  \item \texttt{scripts/evaluate\_grounding.py}: RSNA pneumonia/lung-opacity grounding evaluation.
+  \item \texttt{src/medguard/api/}: FastAPI safety contracts.
+  \item \texttt{app/gradio\_demo.py}: local Gradio demo shell.
+\end{itemize}
+
+Smoke/provenance markers remain part of the safety design. The trained classifier artifacts are real; the default Phase 4A API/demo prediction shell remains smoke-tested and template-driven unless a future pass wires it to real inference.
