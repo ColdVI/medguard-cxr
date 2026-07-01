@@ -2,18 +2,21 @@
 
 \subsection{Summary Table}
 
+\noindent\textbf{Status legend:} \textbf{REAL COMPLETED} rows below have concrete artifacts in the repository. \textbf{DEFERRED / NOT YET RUN} rows describe idealized future training or validation milestones that are not currently trained or validated.
+
 \begin{longtable}{p{0.16\linewidth} p{0.17\linewidth} p{0.12\linewidth} p{0.19\linewidth} p{0.18\linewidth} p{0.12\linewidth}}
 \toprule
 Component & Command & Status & Artifact & Result & Interpretation \\
 \midrule
 \endhead
-NIH training & \texttt{make train} & completed & \texttt{checkpoints/baseline\_nih\_best.pt} local & best epoch 4; val macro AUROC 0.8246 & real classifier checkpoint, git-ignored binary \\
-NIH evaluation & \texttt{make eval} & completed & \texttt{results/baseline\_nih\_eval.json} & macro AUROC 0.8037; macro AUPRC 0.2685 & real NIH evaluation, not clinical validation \\
-Calibration & \texttt{make calibrate} & completed & \texttt{results/calibration\_report.json} & test ECE 0.3144 to 0.3113 & small ECE improvement \\
-RSNA grounding & \texttt{make eval-grounding-rsna} & completed & \texttt{results/grounding\_rsna\_eval.json} & pneumonia AUROC 0.8077; pointing 0.5138; IoU 0.2551 & pneumonia/lung-opacity only \\
-API health & TestClient & smoke-tested & runtime check & HTTP 200; VLM disabled & app shell wiring only \\
-Gradio & \texttt{build\_demo()} & smoke-tested & runtime check & Blocks object created & local demo shell only \\
-VLM/QLoRA & explicit Phase 4B script & implemented, not run & \texttt{results/vlm\_lora\_train.json} & epochs completed 0 & adapter training path exists; no trained adapter \\
+NIH training & \texttt{make train} & \textbf{real completed} & \texttt{checkpoints/baseline\_nih\_best.pt} local & best epoch 4; val macro AUROC 0.8246 & real classifier checkpoint, git-ignored binary \\
+NIH evaluation & \texttt{make eval} & \textbf{real completed} & \texttt{results/baseline\_nih\_eval.json} & macro AUROC 0.8037; macro AUPRC 0.2685 & real NIH evaluation, not clinical validation \\
+Calibration & \texttt{make calibrate} & \textbf{real completed} & \texttt{results/calibration\_report.json} & test ECE 0.3144 to 0.3113 & small ECE improvement \\
+RSNA grounding & \texttt{make eval-grounding-rsna} & \textbf{real completed} & \texttt{results/grounding\_rsna\_eval.json} & pneumonia AUROC 0.8077; pointing 0.5138; IoU 0.2551 & pneumonia/lung-opacity only \\
+API health & TestClient & \textbf{real completed} & runtime check & HTTP 200; VLM disabled & local real-checkpoint inference when artifacts exist; smoke fallback otherwise \\
+Gradio & \texttt{build\_demo()} & \textbf{smoke-tested shell} & runtime check & Blocks object created & local demo shell only \\
+Rule-based VQA & \texttt{make eval-vlm-zero-shot} & \textbf{real baseline completed} & \texttt{results/vlm\_zero\_shot\_eval.json} & exact match 0.6091; template adherence 1.0 & fixed-template only; no free-text VLM claim \\
+VLM/QLoRA & explicit Phase 4B script & \textbf{deferred / not run} & \texttt{results/vlm\_lora\_train.json} & epochs completed 0 & adapter training path exists; no trained adapter \\
 \bottomrule
 \end{longtable}
 
@@ -50,7 +53,8 @@ Artifact & Exists & Source & Status & Notes \\
 \texttt{results/reliability\_diagram.png} & yes & \texttt{make calibrate} & real & reliability figure \\
 \texttt{results/grounding\_rsna\_eval.json} & yes & \texttt{make eval-grounding-rsna} & real & pneumonia only \\
 \texttt{results/overlays/rsna/rsna\_grid.png} & yes & \texttt{make eval-grounding-rsna} & review artifact & not clinical evidence \\
-\texttt{data/vqa/*.jsonl} & no & \texttt{make vqa-dataset} & missing & needed before VLM eval \\
+\texttt{data/vqa/*.jsonl} & local & \texttt{make vqa-dataset} & generated, git-ignored & weak VQA supervision exists locally \\
+\texttt{results/vlm\_zero\_shot\_eval.json} & yes & \texttt{make eval-vlm-zero-shot} & partial/blocker & rule-based baseline computed; VLM backend missing \texttt{bitsandbytes} \\
 \texttt{results/vlm\_lora\_train.json} & yes & smoke/blocker check & not trained & adapter training implemented; current artifact has zero epochs \\
 \bottomrule
 \end{longtable}

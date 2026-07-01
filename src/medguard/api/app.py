@@ -6,9 +6,10 @@ import base64
 import hashlib
 import io
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import numpy as np
+import torch
 import yaml
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
@@ -30,12 +31,19 @@ from medguard.api.schemas import (
     VQAResponse,
 )
 from medguard.data.nih import NIH_LABELS
+from medguard.data.transforms import build_image_transform
+from medguard.eval.localization_metrics import cam_to_bbox
+from medguard.explain.gradcam import generate_gradcam
+from medguard.explain.overlays import overlay_heatmap
+from medguard.models.calibration import load_calibrator
+from medguard.models.classifier import build_classifier, probabilities_from_logits
 from medguard.models.vlm import VLMInferenceEngine, answer_with_optional_vlm, load_vlm
 from medguard.safety.abstention import apply_abstention, load_thresholds_from_config
 from medguard.safety.ood import OODDecision, detect_ood, load_ood_config
 from medguard.vqa.rule_based import answer_question, thresholds_config_with_classes
 
 PHASE = "4"
+ClassifierMode = Literal["auto", "real", "smoke"]
 
 
 class ImageRequest(BaseModel):
@@ -72,18 +80,39 @@ class MedGuardService:
         calibration_config: str | Path = "configs/calibration.yaml",
         ood_config: str | Path = "configs/ood.yaml",
         vlm_config: str | Path = "configs/vlm_lora.yaml",
+        classifier_config: str | Path = "configs/baseline_nih.yaml",
+        classifier_checkpoint: str | Path = "checkpoints/baseline_nih_best.pt",
+        calibrator_path: str | Path = "calibrators/nih_temp_scaling.pkl",
+        classifier_mode: ClassifierMode = "auto",
         provenance: ModelProvenance | None = None,
         fixed_probabilities: np.ndarray | None = None,
         vlm_engine: VLMInferenceEngine | None = None,
         enable_vlm: bool | None = None,
+        cam_threshold: float = 0.60,
     ) -> None:
-        self.provenance = provenance or default_model_provenance()
+        self.classifier_config_path = Path(classifier_config)
+        self.classifier_checkpoint_path = Path(classifier_checkpoint)
+        self.calibrator_path = Path(calibrator_path)
+        self.classifier_mode = classifier_mode
+        self.device = torch.device("cpu")
+        self.classifier_model: torch.nn.Module | None = None
+        self.classifier_transform: Any | None = None
+        self.calibrator: Any | None = None
+        self.classifier_load_error: str | None = None
+        self.cam_threshold = float(cam_threshold)
         self.thresholds = load_thresholds_from_config(
             thresholds_config_with_classes(_load_yaml(calibration_config))
         )
         self.ood_config = load_ood_config(ood_config)
         self.vlm_config = _load_yaml(vlm_config)
         self.fixed_probabilities = fixed_probabilities
+        if fixed_probabilities is None and classifier_mode != "smoke":
+            self._maybe_load_real_classifier()
+        self.provenance = provenance or default_model_provenance(
+            checkpoint_path=self.classifier_checkpoint_path,
+            calibrator_path=self.calibrator_path,
+            is_smoke=self.classifier_model is None,
+        )
         self.vlm_engine = vlm_engine or self._maybe_load_vlm(enable_vlm)
         self.last_predictions: dict[str, PredictionPayload] = {}
 
@@ -140,7 +169,7 @@ class MedGuardService:
         )
 
     def explain(self, image: Image.Image | np.ndarray, class_name: str) -> ExplainResponse:
-        """Return smoke evidence only for non-abstained positive decisions."""
+        """Return gated Grad-CAM evidence for non-abstained positive decisions."""
 
         prediction = self.last_predictions.get(class_name)
         if prediction is None:
@@ -153,7 +182,20 @@ class MedGuardService:
                 model_provenance=self.provenance,
                 safety_disclaimer=SAFETY_DISCLAIMER,
             )
-        evidence = _smoke_evidence(class_name)
+        evidence = self._evidence_for_prediction(
+            image=image,
+            class_name=class_name,
+            confidence=prediction.confidence,
+            abstained=prediction.abstained,
+            prediction=prediction.prediction,
+        )
+        if evidence is None:
+            return ExplainResponse(
+                evidence=None,
+                reason="evidence_unavailable",
+                model_provenance=self.provenance,
+                safety_disclaimer=SAFETY_DISCLAIMER,
+            )
         return ExplainResponse(
             evidence=evidence,
             reason="",
@@ -166,7 +208,18 @@ class MedGuardService:
 
         ood = detect_ood(image, config=self.ood_config)
         probs = self._probabilities(image)
-        evidence = _smoke_evidence(_class_from_question(question)) if ood.accepted else None
+        evidence = None
+        class_name = _class_from_question(question)
+        if ood.accepted and class_name in NIH_LABELS:
+            class_index = NIH_LABELS.index(class_name)
+            record = apply_abstention(probs.reshape(1, -1), self.thresholds)[0][class_index]
+            evidence = self._evidence_for_prediction(
+                image=image,
+                class_name=class_name,
+                confidence=record.confidence,
+                abstained=record.abstained,
+                prediction=record.prediction,
+            )
         rule_based = answer_question(
             question=question,
             probabilities=probs,
@@ -197,11 +250,98 @@ class MedGuardService:
     def _probabilities(self, image: Image.Image | np.ndarray) -> np.ndarray:
         if self.fixed_probabilities is not None:
             return np.asarray(self.fixed_probabilities, dtype=np.float64)
+        if self.classifier_model is not None:
+            image_tensor = self._image_tensor(image)
+            with torch.no_grad():
+                logits = self.classifier_model(image_tensor)
+            logits_np = logits.detach().cpu().numpy()
+            if self.calibrator is not None:
+                return np.asarray(self.calibrator.transform(logits_np)[0], dtype=np.float64)
+            return probabilities_from_logits(logits.detach().cpu())[0].numpy().astype(np.float64)
         arr = np.asarray(image.convert("L") if isinstance(image, Image.Image) else image)
         digest = hashlib.sha256(arr.tobytes()).digest()
         rng = np.random.default_rng(int.from_bytes(digest[:8], "big"))
         probs = rng.uniform(0.43, 0.47, size=len(NIH_LABELS))
         return probs.astype(np.float64)
+
+    def _maybe_load_real_classifier(self) -> None:
+        if not self.classifier_checkpoint_path.exists():
+            if self.classifier_mode == "real":
+                raise FileNotFoundError(
+                    f"Classifier checkpoint not found: {self.classifier_checkpoint_path}"
+                )
+            self.classifier_load_error = "checkpoint_missing"
+            return
+        try:
+            config = _load_yaml(self.classifier_config_path)
+            runtime_config = dict(config)
+            model_config = dict(runtime_config.get("model", {}))
+            # The checkpoint provides all learned weights; keep API startup network-independent.
+            model_config["pretrained"] = "none"
+            model_config["allow_weight_download"] = False
+            runtime_config["model"] = model_config
+            checkpoint = torch.load(
+                self.classifier_checkpoint_path,
+                map_location=self.device,
+                weights_only=False,
+            )
+            model = build_classifier(runtime_config).to(self.device)
+            model.load_state_dict(checkpoint["model_state_dict"])
+            model.eval()
+            self.classifier_model = model
+            self.classifier_transform = build_image_transform(runtime_config, train=False)
+            if self.calibrator_path.exists():
+                self.calibrator = load_calibrator(self.calibrator_path)
+        except Exception as exc:
+            if self.classifier_mode == "real":
+                raise RuntimeError("Could not load the configured classifier checkpoint.") from exc
+            self.classifier_model = None
+            self.classifier_transform = None
+            self.calibrator = None
+            self.classifier_load_error = f"{type(exc).__name__}:{exc}"
+
+    def _image_tensor(self, image: Image.Image | np.ndarray) -> torch.Tensor:
+        if self.classifier_transform is None:
+            raise RuntimeError("Classifier transform is unavailable.")
+        tensor = self.classifier_transform(_ensure_pil(image)).unsqueeze(0)
+        return tensor.to(self.device)
+
+    def _evidence_for_prediction(
+        self,
+        image: Image.Image | np.ndarray,
+        class_name: str | None,
+        confidence: float,
+        abstained: bool,
+        prediction: int | None,
+    ) -> EvidencePayload | None:
+        if class_name not in NIH_LABELS or abstained or prediction != 1:
+            return None
+        if self.classifier_model is None:
+            return _smoke_evidence(class_name)
+
+        class_index = NIH_LABELS.index(class_name)
+        image_tensor = self._image_tensor(image).squeeze(0)
+        heatmap = generate_gradcam(
+            model=self.classifier_model,
+            image=image_tensor,
+            class_index=class_index,
+            confidence=confidence,
+            abstained=abstained,
+            abstention_threshold=float(self.thresholds.tau_hi[class_index]),
+        )
+        if heatmap is None:
+            return None
+        bbox = cam_to_bbox(heatmap, threshold=self.cam_threshold)
+        overlay = overlay_heatmap(_ensure_pil(image), heatmap)
+        buffer = io.BytesIO()
+        overlay.save(buffer, format="PNG")
+        uri = "data:image/png;base64," + base64.b64encode(buffer.getvalue()).decode("ascii")
+        return EvidencePayload(
+            class_name=class_name,
+            cam_uri=uri,
+            bbox_normalized=bbox,
+            cam_method="gradcam",
+        )
 
     def _maybe_load_vlm(self, enable_vlm: bool | None) -> VLMInferenceEngine | None:
         requested = bool(self.vlm_config.get("vlm", {}).get("enabled", False))
@@ -274,14 +414,18 @@ def create_app(
     return app
 
 
-def default_model_provenance() -> ModelProvenance:
-    """Return conservative smoke provenance for Phase 4A."""
+def default_model_provenance(
+    checkpoint_path: str | Path = "checkpoints/baseline_nih_best.pt",
+    calibrator_path: str | Path = "calibrators/nih_temp_scaling.pkl",
+    is_smoke: bool = True,
+) -> ModelProvenance:
+    """Return provenance for the active Phase 4 classifier mode."""
 
     return ModelProvenance(
-        classifier_checkpoint_sha256=_sha256_if_exists(Path("checkpoints/baseline_nih_best.pt")),
-        calibrator_sha256=_sha256_if_exists(Path("calibrators/nih_temp_scaling.pkl")),
-        is_smoke=True,
-        warning=SMOKE_WARNING,
+        classifier_checkpoint_sha256=_sha256_if_exists(Path(checkpoint_path)),
+        calibrator_sha256=_sha256_if_exists(Path(calibrator_path)),
+        is_smoke=is_smoke,
+        warning=SMOKE_WARNING if is_smoke else None,
     )
 
 

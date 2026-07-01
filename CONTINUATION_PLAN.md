@@ -4,15 +4,18 @@
 
 ## 1. Current State
 
-Status classification: **D. trained_evaluated_calibrated_grounded**.
+Status classification: **D. trained_evaluated_calibrated_grounded (real artifacts present)**.
 
-The canonical local artifact paths now contain the real Colab run outputs:
+The canonical local artifact paths now contain the real Colab run outputs. The important separation is:
+
+- **REAL CURRENT STATUS:** NIH training, NIH evaluation, calibration, and RSNA pneumonia grounding are present and completed.
+- **IDEALIZED FUTURE / NOT YET RUN:** further VLM/QLoRA training, free-text VLM validation, and broader clinical or localization milestones remain pending.
 
 - NIH classifier training completed with `make train`.
 - NIH evaluation completed with `make eval`.
 - Calibration completed with `make calibrate`.
 - RSNA pneumonia-specific grounding completed with `make eval-grounding-rsna`.
-- Phase 4A API/Gradio/VQA remains rule-based and smoke-tested.
+- Phase 4A API/Gradio/VQA remains rule-based/fixed-template, with real-checkpoint API inference when local artifacts exist and smoke fallback otherwise.
 - Phase 4B VLM/QLoRA adapter training is implemented, disabled by default, and not trained in current artifacts.
 
 ## 2. Completed Commands
@@ -22,6 +25,8 @@ make train
 make eval
 make calibrate
 make eval-grounding-rsna
+make vqa-dataset
+make eval-vlm-zero-shot
 ```
 
 The reported Colab training evidence was: `Training completed in NIH mode. Best epoch: 4`.
@@ -38,7 +43,8 @@ The reported Colab training evidence was: `Training completed in NIH mode. Best 
 | `calibrators/nih_temp_scaling.pkl` | real | Saved calibrator. |
 | `results/grounding_rsna_eval.json` | real | RSNA Pneumonia/Lung Opacity evaluation. |
 | `results/overlays/rsna/rsna_grid.png` | real engineering artifact | RSNA Grad-CAM grid for review. |
-| `results/vlm_zero_shot_eval.json` | blocked | Missing VQA test JSONL. |
+| `data/vqa/synthetic_qa.{train,val,test}.jsonl` | local generated, git-ignored | Weak-supervision VQA records generated from RSNA manifest. |
+| `results/vlm_zero_shot_eval.json` | partial/blocker | Rule-based VQA baseline computed; VLM backend unavailable because `bitsandbytes` is missing. |
 | `results/vlm_lora_train.json` | deferred/currently untrained | QLoRA adapter training code exists; current artifact has epochs completed 0. |
 
 ## 4. Commands To Run Next
@@ -74,6 +80,8 @@ zip -r medguard_release_artifacts.zip results calibrators checkpoints README.md 
 - `make calibrate`: updates `calibrators/nih_temp_scaling.pkl`, `calibrators/nih_temp_scaling.json`, `results/calibration_report.json`, and `results/reliability_diagram.png`.
 - `make prepare-rsna`: updates `results/rsna_manifest.csv`.
 - `make eval-grounding-rsna`: updates `results/grounding_rsna_eval.json` and `results/overlays/rsna/`.
+- `make vqa-dataset`: updates ignored `data/vqa/synthetic_qa.{train,val,test}.jsonl`.
+- `make eval-vlm-zero-shot`: updates `results/vlm_zero_shot_eval.json`; without optional VLM dependencies it still computes the rule-based baseline and records the VLM blocker.
 
 ## 6. How To Interpret Outputs
 
@@ -81,7 +89,7 @@ zip -r medguard_release_artifacts.zip results calibrators checkpoints README.md 
 - Calibration ECE reports probability calibration quality; lower is better, but a small improvement does not make the model clinically safe.
 - RSNA metrics are pneumonia/lung-opacity only.
 - Grad-CAM overlays are weak review artifacts, not clinical evidence.
-- API/Gradio smoke checks confirm app wiring and safety disclaimers, not real assistant quality.
+- API/Gradio checks confirm local app wiring, safety disclaimers, abstention/OOD behavior, and real-checkpoint classifier loading when artifacts exist; they do not establish clinical assistant quality.
 
 ## 7. Updates After Each Run
 
@@ -111,7 +119,7 @@ Do not claim QLoRA/VLM was trained until `results/vlm_lora_train.json` records r
 
 ## 9. Optional Phase 4B Gate
 
-Phase 4B may be reactivated only after the owner explicitly chooses to do so. The minimum Colab command order is:
+Phase 4B may be reactivated only after the owner explicitly chooses to do so on a CUDA/GPU runtime with optional VLM dependencies installed. The minimum Colab command order is:
 
 ```bash
 pip install -e ".[dev,vlm]"

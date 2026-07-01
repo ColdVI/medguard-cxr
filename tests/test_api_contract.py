@@ -4,9 +4,12 @@ import base64
 import io
 
 import numpy as np
+import torch
 from fastapi.testclient import TestClient
 from PIL import Image
+from torch import nn
 
+import medguard.api.app as api_app
 from medguard.api.app import MedGuardService, create_app
 from medguard.api.schemas import SAFETY_DISCLAIMER, ExplainResponse
 from medguard.data.nih import NIH_LABELS
@@ -56,7 +59,7 @@ def test_predict_endpoint_returns_14_class_results() -> None:
 
 
 def test_default_smoke_predict_abstains_for_every_class() -> None:
-    client = TestClient(create_app(service=MedGuardService()))
+    client = TestClient(create_app(service=MedGuardService(classifier_mode="smoke")))
 
     response = client.post("/predict", json={"image": _image_payload(_cxr_image())})
 
@@ -151,6 +154,53 @@ def test_provenance_middleware_injects_model_provenance() -> None:
     response = client.get("/debug/missing-provenance")
 
     assert response.status_code == 200
-    assert response.json()["model_provenance"]["warning"] == (
-        "synthetic_smoke_only_not_a_real_evaluation"
+    assert "model_provenance" in response.json()
+
+
+def test_auto_mode_falls_back_to_smoke_when_checkpoint_missing(tmp_path) -> None:  # noqa: ANN001
+    service = MedGuardService(
+        classifier_checkpoint=tmp_path / "missing.pt",
+        calibrator_path=tmp_path / "missing.pkl",
     )
+
+    assert service.provenance.is_smoke is True
+    assert service.classifier_load_error == "checkpoint_missing"
+
+
+def test_real_classifier_mode_uses_checkpoint_probabilities(tmp_path, monkeypatch) -> None:  # noqa: ANN001
+    class TinyClassifier(nn.Module):
+        def __init__(self) -> None:
+            super().__init__()
+            self.scale = nn.Parameter(torch.ones(1))
+
+        def forward(self, image: torch.Tensor) -> torch.Tensor:
+            logits = torch.full((image.shape[0], len(NIH_LABELS)), -4.0)
+            logits[:, NIH_LABELS.index("Pneumothorax")] = 4.0 * self.scale
+            return logits
+
+    class TinyTransform:
+        def __call__(self, image) -> torch.Tensor:  # noqa: ANN001
+            return torch.ones(3, 16, 16)
+
+    checkpoint = tmp_path / "tiny.pt"
+    torch.save({"model_state_dict": TinyClassifier().state_dict()}, checkpoint)
+    monkeypatch.setattr(api_app, "build_classifier", lambda _config: TinyClassifier())
+    monkeypatch.setattr(api_app, "build_image_transform", lambda _config, train: TinyTransform())
+    service = MedGuardService(
+        classifier_mode="real",
+        classifier_checkpoint=checkpoint,
+        classifier_config=tmp_path / "missing.yaml",
+        calibrator_path=tmp_path / "missing.pkl",
+    )
+    client = TestClient(create_app(service=service))
+
+    response = client.post("/predict", json={"image": _image_payload(_cxr_image())})
+    payload = response.json()
+
+    assert response.status_code == 200
+    assert payload["model_provenance"]["is_smoke"] is False
+    pneumothorax = next(
+        item for item in payload["predictions"] if item["class_name"] == "Pneumothorax"
+    )
+    assert pneumothorax["prediction"] == 1
+    assert pneumothorax["abstained"] is False

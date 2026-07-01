@@ -8,9 +8,9 @@
 - Task: multi-label chest X-ray finding prediction on NIH ChestX-ray14 labels.
 - Training command: `make train`.
 - Checkpoint: `checkpoints/baseline_nih_best.pt` as a local/generated artifact; the binary checkpoint is ignored by git by default.
-- Current status: trained, evaluated, calibrated, and run through RSNA pneumonia-specific grounding.
-- VQA status: Phase 4A rule-based/fixed-template only.
-- VLM/QLoRA status: adapter-only training path implemented, not trained; deferred optional extension.
+- Current status: **real completed status** — trained, evaluated, calibrated, and run through RSNA pneumonia-specific grounding.
+- VQA status: **Phase 4A rule-based/fixed-template only**; local API inference can use the real classifier checkpoint when available.
+- VLM/QLoRA status: **deferred / not trained / not a current public model milestone**; the adapter-only training path is implemented but remains an idealized future extension.
 
 ## Intended Use
 
@@ -67,7 +67,9 @@ These are research evaluation metrics for a pneumonia-specific cross-dataset che
 
 ## VQA, API, and Demo Status
 
-Phase 4A is rule-based/fixed-template. It keeps safety disclaimers visible and uses abstention/OOD checks. The default API/Gradio shell remains smoke-tested and template-driven; it should not be described as a real clinical assistant.
+Phase 4A is rule-based/fixed-template. It keeps safety disclaimers visible and uses abstention/OOD checks. The API now attempts to load the local real classifier checkpoint and temperature calibrator when they exist, and falls back to smoke probabilities when they do not. Gradio remains a local research interface and should not be described as a real clinical assistant.
+
+The current `make eval-vlm-zero-shot` artifact computes the rule-based VQA baseline over the generated weak-supervision JSONL: exact match 0.6091, template adherence 1.0, hallucination rate 0.0. The zero-shot VLM backend itself is not computed in the current local environment because optional VLM dependency `bitsandbytes` is missing.
 
 Phase 4B VLM/QLoRA adapter training is implemented but remains disabled by default and is not trained in the current public artifacts. Current VLM reports show blocked/deferred status and `epochs_completed=0`.
 

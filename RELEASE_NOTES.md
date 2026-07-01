@@ -12,6 +12,9 @@ Release scope: research and engineering portfolio artifact. Not for clinical use
 - NIH evaluation completed with `make eval`.
 - Calibration completed with `make calibrate`.
 - RSNA Pneumonia Detection Challenge grounding completed with `make eval-grounding-rsna`.
+- Weak-supervision VQA JSONL generation completed locally with `make vqa-dataset`.
+- Rule-based VQA baseline refreshed with `make eval-vlm-zero-shot`; true zero-shot VLM remains unavailable in the current local environment because `bitsandbytes` is missing.
+- Phase 4A API can load the local real classifier checkpoint and calibrator when present, with smoke fallback on missing artifacts.
 - Report LaTeX source added under `report/`.
 
 ## Smoke-Tested
@@ -24,13 +27,12 @@ Release scope: research and engineering portfolio artifact. Not for clinical use
 ## Trained But Not Fully Extended
 
 - The trained model is the DenseNet121 NIH classifier.
-- The Phase 4A API/demo shell is not a production real-inference service.
+- The Phase 4A API/demo shell is not a production clinical service.
 - The project has not completed subgroup analysis or prospective validation.
 
 ## Pending Future Run
 
-- Optional VQA JSONL generation.
-- VLM zero-shot evaluation.
+- Actual zero-shot VLM generation/evaluation in a CUDA/VLM dependency environment.
 - QLoRA fine-tuning run and evaluation; adapter-only training code is available but no adapter has been trained in the current artifacts.
 - VLM/QLoRA comparison review.
 - Subgroup and error analysis.
