@@ -40,6 +40,49 @@ VLM/QLoRA & explicit Phase 4B script & \textbf{deferred / not run} & \texttt{res
 \end{figure}
 }{RSNA overlay grid not found at compile time.}
 
+\subsection{CAM Threshold Sweep: Scale vs. Position Error}
+
+The RSNA grounding numbers in the summary table above come from a single operating
+point. To understand what drives the near-zero mAP@0.5 despite a pointing-game score
+well above chance, \texttt{cam\_threshold} was swept over seven values on the RSNA
+\textbf{validation} split (\texttt{results/sweep/}), with CAM boxes extracted per
+connected component:
+
+\begin{center}
+\begin{tabular}{ccccc}
+\toprule
+CAM threshold & mAP@0.5 & Mean IoU & IoU $\geq$ 0.5 & Pointing-game \\
+\midrule
+0.30 & 0.0000 & 0.1388 & 0.0000 & 0.5138 \\
+0.40 & 0.0000 & 0.1723 & 0.0000 & 0.5138 \\
+0.50 & 0.0001 & 0.2138 & 0.0183 & 0.5138 \\
+0.60 & 0.0004 & 0.2570 & 0.0275 & 0.5138 \\
+0.70 & 0.0013 & 0.2923 & 0.0550 & 0.5138 \\
+\textbf{0.80} & \textbf{0.0045} & \textbf{0.2993} & \textbf{0.1193} & 0.5138 \\
+0.90 & 0.0022 & 0.1968 & 0.0550 & 0.5138 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Raising the threshold from 0.60 to 0.80 increases mAP@0.5 by a factor of $10.8\times$
+(0.00042 to 0.00454) and raises the fraction of boxes reaching IoU $\geq$ 0.5 from 2.8\%
+to 11.9\%; the curve is unimodal and falls again at 0.90, so shrinking the box further
+is not a fix. Pointing-game accuracy, by contrast, is exactly 0.5138 at every one of the
+seven thresholds. This is not a coincidence: pointing-game only checks whether the CAM's
+peak activation falls inside the ground-truth box, while thresholding prunes the support
+around that peak without moving it. Threshold tuning can therefore correct a scale
+error but not a position error, and even at the best threshold 88\% of positives still
+fail the IoU $\geq$ 0.5 criterion. This scale/position split, and the resulting gap
+between a loose point-based hit rate and a strict IoU-based one, is consistent with the
+benchmarked divergence between saliency-metric families reported for chest X-ray
+interpretation \citep{saporta2022benchmarking}.
+
+Threshold selection used only the validation split; \texttt{cam\_threshold = 0.80} was
+then read once, as a confirmatory check, on the held-out RSNA test split (summary table
+above): mAP@0.5 0.0077, mean IoU 0.3059, pointing-game 0.4286. The test pointing-game
+value is lower than the constant 0.5138 seen throughout the validation sweep; consistent
+with not tuning on test, \texttt{cam\_threshold} was not revisited in response.
+
 \subsection{Artifact Audit}
 
 \begin{longtable}{p{0.29\linewidth} p{0.1\linewidth} p{0.2\linewidth} p{0.18\linewidth} p{0.15\linewidth}}
