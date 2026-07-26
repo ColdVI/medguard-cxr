@@ -121,10 +121,16 @@ foundational, all DOI/venue-verified), and all 11 new entries are `\cite`'d in
 
 **P1 — run isotonic and Platt calibration** (code already exists) and produce a
 three-way comparison table against temperature scaling. Discuss the flexibility vs.
-overfitting tradeoff given low positive counts in rare classes.
+overfitting tradeoff given low positive counts in rare classes. **Blocked in the current
+local environment:** `data/nih` is not present locally (`dataset_available()` in
+`src/medguard/data/nih.py` returns `False`), so `scripts/calibrate.py` would fall back
+to `smoke_no_dataset` mode rather than fitting real calibrators on NIH val/test logits.
+Needs to be run wherever the NIH dataset is available (Colab, per the existing
+checkpoint's training provenance), not run as smoke output here.
 
 **P1 — bootstrap confidence intervals** for AUROC, AUPRC, and ECE. Point estimates
-alone are weak for an academic write-up.
+alone are weak for an academic write-up. **Same blocker as above:** no NIH data or
+cached per-sample test predictions exist locally to resample.
 
 **P2 — optional**: run VLM zero-shot on GPU (Colab) against the rule-based baseline.
 Only if the environment is available; otherwise leave clearly marked as not executed.
