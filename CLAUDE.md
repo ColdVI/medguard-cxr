@@ -126,9 +126,6 @@ overfitting tradeoff given low positive counts in rare classes.
 **P1 — bootstrap confidence intervals** for AUROC, AUPRC, and ECE. Point estimates
 alone are weak for an academic write-up.
 
-**P2 — formalize `03_methodology.tex`**: write the temperature-scaling objective,
-ECE/MCE definitions, and pointing-game / IoU / mAP definitions as equations.
-
 **P2 — optional**: run VLM zero-shot on GPU (Colab) against the rule-based baseline.
 Only if the environment is available; otherwise leave clearly marked as not executed.
 

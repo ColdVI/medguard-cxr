@@ -8,9 +8,58 @@ The image classifier is a DenseNet121 model with a multi-label output head, foll
 
 Calibration uses per-class temperature scaling \citep{guo2017calibration}, fit on validation logits by minimizing validation negative log-likelihood, and reports expected calibration error (ECE) before and after calibration. The saved calibrator lives at \texttt{calibrators/nih\_temp\_scaling.pkl}. Because label noise breaks the assumptions temperature scaling relies on, a flat or negligible ECE improvement is read as a structural, predicted outcome rather than an anomaly \citep{wu2026transts}.
 
+For each class $c$ with raw logits $z_c$ and labels $y_c \in \{0, 1\}$, a single positive
+temperature $T_c$ rescales the logit before the sigmoid:
+\[
+  \hat{p}_c = \sigma\!\left(\frac{z_c}{T_c}\right), \qquad \sigma(x) = \frac{1}{1 + e^{-x}}.
+\]
+$T_c$ is fit on the validation split only, by minimizing the binary cross-entropy
+(negative log-likelihood) between $\hat{p}_c$ and $y_c$:
+\[
+  T_c^{*} = \operatorname*{arg\,min}_{T_c > 0} \; -\sum_{i} \Big[ y_{c,i} \log \sigma\!\left(\tfrac{z_{c,i}}{T_c}\right) + (1 - y_{c,i}) \log\!\left(1 - \sigma\!\left(\tfrac{z_{c,i}}{T_c}\right)\right) \Big],
+\]
+implemented via L-BFGS over $\log T_c$ so that positivity holds without a constrained
+optimizer. Because $T_c > 0$ only rescales logits and never reorders them, temperature
+scaling cannot change which examples rank above others; it can only sharpen or flatten
+the resulting probabilities.
+
+Expected and maximum calibration error use $n = 15$ equal-width bins over $[0, 1]$. For
+bin $B_m$ containing the predictions whose confidence falls in that bin's interval, with
+$\mathrm{acc}(B_m)$ the empirical positive rate and $\mathrm{conf}(B_m)$ the mean
+predicted probability in $B_m$:
+\[
+  \mathrm{ECE} = \sum_{m=1}^{n} \frac{|B_m|}{N} \left| \mathrm{acc}(B_m) - \mathrm{conf}(B_m) \right|,
+  \qquad
+  \mathrm{MCE} = \max_{m \in \{1, \ldots, n\}} \left| \mathrm{acc}(B_m) - \mathrm{conf}(B_m) \right|.
+\]
+Per-class ECE/MCE are computed independently per class and macro-averaged.
+
 \subsection{RSNA Grounding}
 
 The RSNA grounding path evaluates NIH \texttt{Pneumonia} probability against RSNA \texttt{Lung Opacity}. Grad-CAM \citep{selvaraju2017gradcam} overlays are generated only for non-abstained, confidence-gated examples; Grad-CAM++ \citep{chattopadhay2018gradcampp}, which uses higher-order gradient weighting and is better suited to diffuse or multi-instance findings, is implemented as a secondary method but is not the default in current results. The overlays are weak engineering artifacts, not clinical evidence.
+
+A CAM heatmap is converted to boxes by thresholding at a fraction of its own maximum and
+extracting one axis-aligned box per 8-connected component of the retained region; a
+component's score is the peak CAM value inside it. Given a predicted box $\hat{b}$ and
+ground-truth box $b$ as $(x_{\min}, y_{\min}, x_{\max}, y_{\max})$ pairs in normalized
+image coordinates, intersection-over-union is
+\[
+  \mathrm{IoU}(\hat{b}, b) = \frac{\mathrm{area}(\hat{b} \cap b)}{\mathrm{area}(\hat{b} \cup b)}.
+\]
+\textbf{Pointing-game accuracy} checks only whether the CAM's arg-max location
+$p^{*} = \arg\max_{(x,y)} \mathrm{CAM}(x,y)$ falls inside any ground-truth box for that
+image, averaged over confidence-gated positive images with a generated CAM:
+\[
+  \mathrm{PointingGame} = \frac{1}{N}\sum_{i=1}^{N} \mathbb{1}\!\left[\, p^{*}_i \in b_i \,\right].
+\]
+\textbf{mAP@0.5} pools predicted boxes across all evaluated images, ranks them by CAM
+score, and computes average precision at an IoU acceptance threshold of 0.5: a predicted
+box is a true positive only if $\mathrm{IoU}(\hat{b}, b) \geq 0.5$ against an
+unmatched ground-truth box, and average precision is the area under the resulting
+precision-recall curve. Pointing-game is therefore a location-only criterion, while
+mAP@0.5 additionally penalizes box shape and pools false positives across the whole
+image set; Section~\ref{sec:results} uses the gap between them to separate a
+scale-fixable error from a position-fixable one (RQ2).
 
 \subsection{Selective Prediction}
 
