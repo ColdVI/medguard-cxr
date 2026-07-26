@@ -119,8 +119,6 @@ foundational, all DOI/venue-verified), and all 11 new entries are `\cite`'d in
 `report/sections/`. 2 pre-existing entries (`frenkel2021classbased`,
 `li2022noisetransition`) remain `% TODO: verify` pending owner check.
 
-**P0 — add a Related Work section.** The report currently has none.
-
 **P1 — run isotonic and Platt calibration** (code already exists) and produce a
 three-way comparison table against temperature scaling. Discuss the flexibility vs.
 overfitting tradeoff given low positive counts in rare classes.

@@ -1,0 +1,51 @@
+\section{Related Work}
+
+This section ties each design decision in the system to the literature it draws on. It
+is not a survey; it is a short justification of why each component looks the way it
+does.
+
+\paragraph{Chest X-ray classification.} NIH ChestX-ray14 \citep{wang2017chestxray8} and
+CheXNet \citep{rajpurkar2017chexnet} established image-level, silver-standard-labelled
+multi-label classification of frontal chest radiographs as the dominant large-scale
+setting for this problem, including the use of DenseNet variants as the default
+backbone. The classifier here inherits that setting and that backbone choice directly;
+it does not depart from either.
+
+\paragraph{Calibration under label noise.} Temperature scaling \citep{guo2017calibration}
+is the calibration baseline used throughout. It was derived and validated on datasets
+with clean labels, and two more recent lines of work motivate why that assumption
+matters here: class-based temperature scaling \citep{frenkel2021classbased} generalizes
+the method to per-class parameters, which this project adopts, while
+\citet{wu2026transts} and \citet{li2022noisetransition} separately show that label noise
+degrades what a rank-preserving, single-parameter recalibration can achieve in
+multi-label settings. Read together, they are the reason a flat post-calibration ECE on
+NIH's NLP-mined labels is treated as an expected structural outcome (RQ1) rather than an
+implementation defect.
+
+\paragraph{Weak localization and saliency benchmarking.} Grad-CAM
+\citep{selvaraju2017gradcam} and Grad-CAM++ \citep{chattopadhay2018gradcampp} are the
+gradient-based saliency methods used to produce visual evidence from a classifier that
+was never trained with any localization supervision.
+\citet{saporta2022benchmarking} benchmarked exactly this class of method for chest X-ray
+interpretation and reported the same qualitative split observed here: point-based
+metrics and IoU-based metrics measure different things and diverge sharply once boxes
+are extracted from a diffuse heatmap. The threshold sweep in Section~\ref{sec:results}
+is a direct, quantitative instance of that divergence (RQ2).
+
+\paragraph{Selective prediction.} The two-sided abstention band used for every class
+follows the reject-option formulation of \citet{geifman2017selective}: coverage and risk
+are reported jointly instead of collapsing abstention into a single accuracy figure,
+and abstention is a first-class model output rather than a post-hoc confidence filter.
+
+\paragraph{Parameter-efficient fine-tuning.} The optional VLM presentation layer targets
+LoRA adapters \citep{hu2022lora} in 4-bit NF4 precision following the QLoRA recipe
+\citep{dettmers2023qlora}, restricted to the attention projection matrices. This choice
+is why the adapter path is described as scaffolding rather than a trained component:
+the method is implemented, but no adapter has been fit in the current artifacts.
+
+\paragraph{Responsible-AI documentation.} Model cards \citep{mitchell2019modelcards} and
+datasheets for datasets \citep{gebru2018datasheets} motivate \texttt{model\_card.md} and
+\texttt{datasheet.md} as first-class artifacts rather than incidental documentation;
+the claim-discipline rules that govern this report (every number traces to a real
+artifact, or it is not written down) are this project's operational reading of what
+those two papers ask for.
