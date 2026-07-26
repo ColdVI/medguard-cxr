@@ -13,7 +13,7 @@ Component & Command & Status & Artifact & Result & Interpretation \\
 NIH training & \texttt{make train} & \textbf{real completed} & \texttt{checkpoints/baseline\_nih\_best.pt} local & best epoch 4; val macro AUROC 0.8246 & real classifier checkpoint, git-ignored binary \\
 NIH evaluation & \texttt{make eval} & \textbf{real completed} & \texttt{results/baseline\_nih\_eval.json} & macro AUROC 0.8037; macro AUPRC 0.2685 & real NIH evaluation, not clinical validation \\
 Calibration & \texttt{make calibrate} & \textbf{real completed} & \texttt{results/calibration\_report.json} & test ECE 0.3144 to 0.3113 & small ECE improvement \\
-RSNA grounding & \texttt{make eval-grounding-rsna} & \textbf{real completed} & \texttt{results/grounding\_rsna\_eval.json} & test split, \texttt{cam\_threshold=0.80} (val-selected): pneumonia AUROC 0.8277; pointing 0.4286; IoU 0.3059; mAP@0.5 0.0077 & pneumonia/lung-opacity only; threshold chosen on val, not re-tuned against this test read \\
+RSNA grounding & \texttt{make eval-grounding-rsna} & \textbf{real completed} & \texttt{results/grounding\_rsna\_eval.json} & test split, \texttt{cam\_threshold=0.80}, \texttt{box\_extraction=multi} (both val-selected): pneumonia AUROC 0.8277; pointing 0.4286; IoU 0.3139; mAP@0.5 0.0091 & pneumonia/lung-opacity only; threshold and extraction chosen on val, not re-tuned against this test read \\
 API health & TestClient & \textbf{real completed} & runtime check & HTTP 200; VLM disabled & local real-checkpoint inference when artifacts exist; smoke fallback otherwise \\
 Gradio & \texttt{build\_demo()} & \textbf{smoke-tested shell} & runtime check & Blocks object created & local demo shell only \\
 Rule-based VQA & \texttt{make eval-vlm-zero-shot} & \textbf{real baseline completed} & \texttt{results/vlm\_zero\_shot\_eval.json} & exact match 0.6091; template adherence 1.0 & synthetic template-generated QA set, not real clinical questions; fixed-template only; no free-text VLM claim \\
@@ -78,11 +78,22 @@ between a loose point-based hit rate and a strict IoU-based one, is consistent w
 benchmarked divergence between saliency-metric families reported for chest X-ray
 interpretation \citep{saporta2022benchmarking}.
 
-Threshold selection used only the validation split; \texttt{cam\_threshold = 0.80} was
-then read once, as a confirmatory check, on the held-out RSNA test split (summary table
-above): mAP@0.5 0.0077, mean IoU 0.3059, pointing-game 0.4286. The test pointing-game
-value is lower than the constant 0.5138 seen throughout the validation sweep; consistent
-with not tuning on test, \texttt{cam\_threshold} was not revisited in response.
+The flatness claim above — pointing-game constant across all seven thresholds — is a
+\textbf{validation-split} finding. Threshold and extraction-method selection used only
+that split; \texttt{cam\_threshold = 0.80} with \texttt{box\_extraction = multi} was
+then read once, as a single confirmatory point, on the held-out RSNA test split (summary
+table above): mAP@0.5 0.0091, mean IoU 0.3139, IoU $\geq$ 0.5 hit rate 0.1607, and
+pointing-game 0.4286. This single test point does not itself test flatness across
+thresholds; only the validation sweep does that. Three of the four localization metrics
+are \emph{higher} on this test read than the corresponding validation values at
+threshold 0.80 (mAP@0.5 0.0045 $\to$ 0.0091; IoU $\geq$ 0.5 hit rate 0.1193 $\to$
+0.1607; mean IoU 0.2993 $\to$ 0.3139); only pointing-game moved the other way (0.5138
+$\to$ 0.4286). At $n = 112$ gated positive cases, a proportion near 0.5 has a standard
+error of approximately $\sqrt{0.5 \times 0.5 / 112} \approx 0.047$, so the 8.5-point gap
+is about $1.8$ standard errors — consistent with sampling noise on a different image
+subset rather than a systematic regression. Consistent with not tuning on test,
+\texttt{cam\_threshold} and \texttt{box\_extraction} were not revisited in response to
+this result.
 
 \subsection{Artifact Audit}
 

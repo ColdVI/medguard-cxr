@@ -47,7 +47,7 @@ results.
 | NIH DenseNet121 classifier | ran | macro AUROC 0.8037, macro AUPRC 0.2685, n=25596 |
 | Per-class temperature scaling | ran | ECE 0.3144 → 0.3113 (negligible improvement) |
 | Isotonic / Platt calibration | implemented, not run in headline | — |
-| RSNA cross-dataset grounding | ran | test split, cam_threshold=0.80 (val-selected): pointing-game 0.4286, mIoU 0.3059, mAP@0.5 = 0.0077 |
+| RSNA cross-dataset grounding | ran | test split, cam_threshold=0.80, box_extraction=multi (val-selected): pointing-game 0.4286, mIoU 0.3139, mAP@0.5 = 0.0091 |
 | Rule-based VQA | ran | exact match 0.6091, hallucination rate 0.0 |
 | VLM (Qwen2.5-VL-3B) QLoRA fine-tune | code only, `enabled: false` | epochs_completed = 0 |
 | VLM zero-shot eval | blocked (`bitsandbytes` / GPU) | never executed |
@@ -55,14 +55,22 @@ results.
 The near-zero mAP alongside a pointing-game score well above the strict-IoU hit rate is
 **an expected finding, not a bug** — it is the known strict-IoU vs. loose-hit-rate gap
 for CAM-style saliency, and it should be framed as consistent with the literature
-(Saporta et al., *Nature Machine Intelligence* 4:867–878, 2022). A 7-point
-`cam_threshold` sweep on the RSNA **val** split (`results/sweep/`) found pointing-game
-accuracy constant at 0.5138 across every threshold while mAP@0.5 improved 10.8× (0.00042
-to 0.00454 at threshold 0.80) — a clean scale/position decomposition: thresholding fixes
-box scale but cannot move the CAM peak. The one-time confirmatory read on the **test**
-split at the selected threshold 0.80 gives pointing-game 0.4286 (lower than the val
-value; not re-tuned in response, by design) and mAP@0.5 0.0077 — see
-`docs/gradcam_visual_audit.md` for the full sweep and ablation.
+(Saporta et al., *Nature Machine Intelligence* 4:867–878, 2022). **This flatness claim
+is a val-split-only finding:** a 7-point `cam_threshold` sweep on the RSNA
+**validation** split (`results/sweep/`, `box_extraction=multi`) found pointing-game
+accuracy constant at 0.5138 across every threshold tested while mAP@0.5 improved 10.8×
+(0.00042 to 0.00454 at threshold 0.80) — a clean scale/position decomposition:
+thresholding fixes box scale but cannot move the CAM peak. The one-time confirmatory
+read on the held-out **test** split, at the val-selected threshold 0.80 and
+`box_extraction=multi`, is a single point and does not itself test flatness across
+thresholds. It gives mAP@0.5 0.0091, mean IoU 0.3139, IoU≥0.5 hit rate 0.1607 — all
+higher than the val values at this threshold — and pointing-game 0.4286, lower than the
+val value of 0.5138. At n=112 gated positive cases, that 8.5-point pointing-game gap is
+~1.8 standard errors (SE≈0.047 for a proportion near 0.5): three of four localization
+metrics improved on test and only pointing-game moved the other way, which reads as
+sampling noise rather than a systematic regression. `cam_threshold` was not revisited in
+response, by design — see `docs/gradcam_visual_audit.md` for the full sweep and
+ablation.
 
 The flat ECE is a **negative result and should be reported as one**, with the structural
 explanation: temperature scaling is rank-preserving (a single positive scalar divisor

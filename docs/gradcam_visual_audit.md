@@ -36,20 +36,35 @@ Localization:
 | Metric | Value |
 |---|---|
 | Pointing game | 0.4286 (n = 112 gated positive CAMs) |
-| mean IoU | 0.3059 |
-| IoU ≥ 0.5 hit rate | 0.1429 |
-| mAP@0.5 | 0.0077 |
+| mean IoU | 0.3139 |
+| IoU ≥ 0.5 hit rate | 0.1607 |
+| mAP@0.5 | 0.0091 |
 
 Pipeline counts: 2673 dataset records, 1024 evaluated, 388 ground-truth boxes,
 112 CAMs generated, 845 samples skipped by the 0.7 confidence gate, 125 positive cases
 with no CAM because of the gate or an empty CAM. CAM boxes are extracted per connected
-component (`cam_to_boxes`) from Grad-CAM support thresholded at 0.8; the classifier
-never predicts boxes directly.
+component (`cam_to_boxes`, `box_extraction=multi`) from Grad-CAM support thresholded at
+0.8; the classifier never predicts boxes directly. (An earlier version of this
+regeneration ran with the CLI's `box_extraction` default of `single` rather than
+`multi`, because `box_extraction` was not wired into `configs/grounding_rsna.yaml` the
+way `cam_threshold` and `split.eval` are. That has been fixed —
+`gradcam.box_extraction: multi` is now in the config — and this table is the corrected
+`multi` run. The two differ only where CAM support is disconnected: mAP@0.5 moved
+0.0077 to 0.0091 and mean IoU moved 0.3059 to 0.3139, both small, consistent with the
+95%-single-component measurement below.)
 
-Pointing-game is markedly lower on this test read (0.4286) than the constant 0.5138
-seen across every threshold in the val sweep. Per the project's test-set-tuning
-discipline, this is reported as-is; `cam_threshold` is not re-tuned in response, and no
-second sweep was run to chase the test number back up.
+Three of the four localization metrics above are *higher* than the corresponding
+validation-split values at this threshold (mAP@0.5 0.0045 to 0.0091; IoU ≥ 0.5 hit rate
+0.1193 to 0.1607; mean IoU 0.2993 to 0.3139). Only pointing-game is lower on test
+(0.5138 to 0.4286). At n = 112, a proportion near 0.5 has standard error
+$\sqrt{0.5 \times 0.5 / 112} \approx 0.047$, so the 8.5-point gap is about 1.8 standard
+errors — read as sampling noise on a different image subset, not a systematic drop.
+**This test point is a single confirmatory read, not a re-run of the flatness check**:
+the "pointing-game is constant across thresholds" claim below is a validation-split
+finding only, established by the seven-point sweep, and this one test point does not
+test that claim. Per the project's test-set-tuning discipline, `cam_threshold` and
+`box_extraction` are not re-tuned in response to this test result, and no second sweep
+was run to chase the pointing-game number back up.
 
 ## Scope of this review
 
@@ -194,7 +209,13 @@ CAM overlay. The per-sample PNGs are correct; only the grid is affected. Not yet
 
 - ~~Report the validation-selected `cam_threshold = 0.80` once on the test split.~~
   Done: see "Quantitative anchors" above. Test pointing-game (0.4286) came in below the
-  val value (0.5138); the threshold was not revisited in response.
+  val value (0.5138), but 3 of 4 localization metrics improved and the pointing-game gap
+  is ~1.8 SE at n=112; the threshold was not revisited in response either way.
+- ~~Wire `box_extraction` through `configs/grounding_rsna.yaml` like `cam_threshold` and
+  `split.eval`.~~ Done: it was CLI-only with a hardcoded `single` default, so the first
+  test-split regeneration silently ran `single` instead of matching the sweep's `multi`.
+  Fixed in `scripts/evaluate_grounding.py` / `configs/grounding_rsna.yaml`; the numbers
+  above are the corrected `multi` run.
 - Fix the grid compositing so `rsna_grid.png` shows the heatmap.
 - Compare Grad-CAM++ on the same samples; its higher-order weighting targets the
   multi-instance case, though with 95% single-component support the headroom looks small.

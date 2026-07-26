@@ -55,16 +55,17 @@ Current grounding is limited to RSNA Pneumonia Detection Challenge 2018:
 
 - NIH class: `Pneumonia`.
 - RSNA target: `Lung Opacity`.
-- Split: RSNA test (held out; `cam_threshold=0.80` was selected on the RSNA val split via a 7-point sweep, then read once on test).
+- Split: RSNA test (held out; `cam_threshold=0.80` and `box_extraction=multi` were selected on the RSNA val split via a 7-point sweep, then read once on test).
 - Evaluated records: 1024.
 - Generated Grad-CAM overlays: 112.
 - Pneumonia AUROC: 0.8277.
 - Pneumonia AUPRC: 0.5655.
 - Pointing-game accuracy: 0.4286.
-- Mean IoU: 0.3059.
-- mAP@0.5: 0.0077.
+- Mean IoU: 0.3139.
+- IoU $\geq$ 0.5 hit rate: 0.1607.
+- mAP@0.5: 0.0091.
 
-These are research evaluation metrics for a pneumonia-specific cross-dataset check. Grad-CAM overlays are weak engineering artifacts and are not clinical evidence. Pointing-game accuracy on this test read (0.4286) is lower than the val-sweep value (0.5138) reported during threshold selection; per project policy the threshold is not re-tuned in response to this test result (see `docs/gradcam_visual_audit.md`).
+These are research evaluation metrics for a pneumonia-specific cross-dataset check. Grad-CAM overlays are weak engineering artifacts and are not clinical evidence. Of the four localization metrics, three improved from the val-sweep values at this threshold (mAP@0.5 0.0045→0.0091, IoU≥0.5 hit rate 0.1193→0.1607, mean IoU 0.2993→0.3139); only pointing-game accuracy is lower on test (0.5138→0.4286). At n=112 gated positive cases, that 8.5-point difference is about 1.8 standard errors (SE≈0.047 for a proportion near 0.5), consistent with sampling noise rather than a systematic drop. Per project policy the threshold is not re-tuned in response to this test result (see `docs/gradcam_visual_audit.md`).
 
 ## VQA, API, and Demo Status
 
