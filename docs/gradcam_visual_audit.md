@@ -21,29 +21,48 @@ scope is narrow: the NIH `Pneumonia` probability evaluated against the RSNA
 
 ## Quantitative anchors
 
-Classification on the RSNA subset (n = 1024, 237 positive):
-AUROC 0.8077, AUPRC 0.5595, sensitivity at 90% specificity 0.4810.
+**Updated after the threshold sweep below.** These anchors now reflect the
+val-selected `cam_threshold = 0.80`, read once on the RSNA **test** split (the
+`split.eval: test` confirmatory run called for in "Open items"). The earlier anchors —
+`cam_threshold = 0.60` on the **val** split — were AUROC 0.8077, AUPRC 0.5595,
+pointing game 0.5138, mean IoU 0.2551, mAP@0.5 0.00042; they remain the row of the
+sweep table below at threshold 0.60 and are not repeated here as the current artifact.
+
+Classification on the RSNA test subset (n = 1024, 237 positive):
+AUROC 0.8277, AUPRC 0.5655, sensitivity at 90% specificity 0.4937.
 
 Localization:
 
 | Metric | Value |
 |---|---|
-| Pointing game | 0.5138 (n = 109 gated positive CAMs) |
-| mean IoU | 0.2551 |
-| IoU ≥ 0.5 hit rate | 0.0275 |
-| mAP@0.5 | 0.00042 |
+| Pointing game | 0.4286 (n = 112 gated positive CAMs) |
+| mean IoU | 0.3059 |
+| IoU ≥ 0.5 hit rate | 0.1429 |
+| mAP@0.5 | 0.0077 |
 
-Pipeline counts: 2693 dataset records, 1024 evaluated, 384 ground-truth boxes,
-179 CAMs generated, 845 samples skipped by the 0.7 confidence gate, 128 positive cases
-with no CAM because of the gate or an empty CAM. CAM boxes are extracted from Grad-CAM
-support thresholded at 0.6; the classifier never predicts boxes directly.
+Pipeline counts: 2673 dataset records, 1024 evaluated, 388 ground-truth boxes,
+112 CAMs generated, 845 samples skipped by the 0.7 confidence gate, 125 positive cases
+with no CAM because of the gate or an empty CAM. CAM boxes are extracted per connected
+component (`cam_to_boxes`) from Grad-CAM support thresholded at 0.8; the classifier
+never predicts boxes directly.
+
+Pointing-game is markedly lower on this test read (0.4286) than the constant 0.5138
+seen across every threshold in the val sweep. Per the project's test-set-tuning
+discipline, this is reported as-is; `cam_threshold` is not re-tuned in response, and no
+second sweep was run to chase the test number back up.
 
 ## Scope of this review
 
 The grid plus three per-sample overlays were inspected directly:
 `rsna_00_0174c4bb`, `rsna_05_087bcaa5`, `rsna_12_0c391e0f`. The patterns below are
 consistent across those three and with what is visible in the grid; they are not a
-census of all 20 overlays, and no per-image scoring was performed.
+census of all 20 overlays, and no per-image scoring was performed. **Provenance note:**
+these three files were from the `cam_threshold=0.60`, val-split run; the test-split
+regeneration above replaced `results/overlays/rsna/` with a different (test) sample set,
+so these exact filenames are no longer in the working tree, only in git history prior to
+this session's regeneration. The measured patterns below (component counts, area ratios)
+were computed against that val run and have not been re-verified against the new test
+overlays — that re-verification is not in scope here.
 
 ## Recurring patterns
 
@@ -173,8 +192,9 @@ CAM overlay. The per-sample PNGs are correct; only the grid is affected. Not yet
 
 ## Open items
 
-- Report the validation-selected `cam_threshold = 0.80` once on the test split. Until
-  that runs, 0.80 is a validation result and must not be quoted as a test number.
+- ~~Report the validation-selected `cam_threshold = 0.80` once on the test split.~~
+  Done: see "Quantitative anchors" above. Test pointing-game (0.4286) came in below the
+  val value (0.5138); the threshold was not revisited in response.
 - Fix the grid compositing so `rsna_grid.png` shows the heatmap.
 - Compare Grad-CAM++ on the same samples; its higher-order weighting targets the
   multi-instance case, though with 95% single-component support the headroom looks small.

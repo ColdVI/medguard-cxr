@@ -17,10 +17,15 @@ data:
     - Lung Opacity
 
 split:
-  eval: val
+  eval: test
   val_fraction: 0.10
   test_fraction: 0.10
-  note: "RSNA public train labels are split deterministically by patientId into train/val/test; hidden Kaggle test labels are not used."
+  note: >-
+    RSNA public train labels are split deterministically by patientId into
+    train/val/test; hidden Kaggle test labels are not used. cam_threshold below
+    was selected on the val split via results/sweep/ and is now read once on
+    test as the confirmatory run; do not re-tune cam_threshold from the test
+    result.
 
 preprocessing:
   image_size: 224
@@ -36,7 +41,7 @@ gradcam:
   target_layer: last_conv_before_global_average_pooling
   confidence_gate: 0.70
   skip_abstained: true
-  cam_threshold: 0.60
+  cam_threshold: 0.80
   target_class_mapping:
     Pneumonia:
       - Lung Opacity
