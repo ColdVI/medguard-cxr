@@ -12,3 +12,5 @@ Core implementation lives under \texttt{src/medguard/}. Command-line workflows l
 \end{itemize}
 
 Smoke/provenance markers remain part of the safety design. The trained classifier artifacts are real; the default Phase 4A API/demo prediction shell remains smoke-tested and template-driven unless a future pass wires it to real inference.
+
+Documentation follows the model card \citep{mitchell2019modelcards} and datasheet \citep{gebru2018datasheets} conventions: \texttt{model\_card.md} records intended use, training data, and known limitations for the classifier, and \texttt{datasheet.md} records dataset composition and collection provenance for NIH ChestX-ray14 and RSNA.

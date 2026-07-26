@@ -107,16 +107,16 @@ design decisions, and code changes must not silently drop them.
 
 ## 5. Work backlog, in priority order
 
-**P0 — `report/references.bib` has 3 entries (calibration-under-label-noise track:
-`wu2026transts`, `frenkel2021classbased`, `li2022noisetransition`), 2 still marked
-`% TODO: verify`. None of the three are `\cite`'d anywhere in `report/sections/` yet.
-Still missing: the foundational core set — Wang et al. CVPR 2017 (ChestX-ray8);
-Rajpurkar et al. 2017 (CheXNet); Guo et al. ICML 2017 (calibration); Selvaraju et al.
-ICCV 2017 (Grad-CAM); Chattopadhay et al. WACV 2018 (Grad-CAM++); Saporta et al. NMI
-2022 (saliency benchmark); Geifman & El-Yaniv NeurIPS 2017 (selective prediction);
-Hu et al. 2021 (LoRA); Dettmers et al. 2023 (QLoRA); Mitchell et al. 2019 (model cards);
-Gebru et al. 2018 (datasheets). Add these, verify each entry, and wire in the actual
-`\cite` calls.**
+**P0 — `report/references.bib` now has 14 entries** (3 calibration-under-label-noise
++ 11 foundational, all DOI/venue-verified). 10 of the 11 new entries are `\cite`'d in
+`report/sections/`: `wang2017chestxray8` (datasets), `rajpurkar2017chexnet`,
+`guo2017calibration`, `selvaraju2017gradcam`, `chattopadhay2018gradcampp`,
+`geifman2017selective`, `hu2022lora`, `dettmers2023qlora` (methodology),
+`mitchell2019modelcards`, `gebru2018datasheets` (system design). **Still open:**
+`saporta2022benchmarking` — the mAP-vs-pointing-game citation — is blocked on a
+discrepancy between `results/grounding_rsna_eval.json` and
+`results/sweep/thr_0.60.json` (see owner note, same session). 2 pre-existing entries
+remain `% TODO: verify` as before.
 
 **P0 — add explicit research questions to `report/sections/01_introduction.tex`.**
 Suggested framing:

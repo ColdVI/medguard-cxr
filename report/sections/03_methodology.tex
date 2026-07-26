@@ -2,16 +2,20 @@
 
 \subsection{Classifier}
 
-The image classifier is a DenseNet121 model with a multi-label output head. The model returns raw logits during training. Training uses \texttt{BCEWithLogitsLoss}; sigmoid conversion is applied only during evaluation and inference.
+The image classifier is a DenseNet121 model with a multi-label output head, following the DenseNet-on-chest-X-ray precedent set by CheXNet \citep{rajpurkar2017chexnet}. The model returns raw logits during training. Training uses \texttt{BCEWithLogitsLoss}; sigmoid conversion is applied only during evaluation and inference.
 
 \subsection{Calibration}
 
-Calibration uses temperature scaling fit on validation logits and reports expected calibration error (ECE) before and after calibration. The saved calibrator lives at \texttt{calibrators/nih\_temp\_scaling.pkl}.
+Calibration uses per-class temperature scaling \citep{guo2017calibration}, fit on validation logits by minimizing validation negative log-likelihood, and reports expected calibration error (ECE) before and after calibration. The saved calibrator lives at \texttt{calibrators/nih\_temp\_scaling.pkl}. Because label noise breaks the assumptions temperature scaling relies on, a flat or negligible ECE improvement is read as a structural, predicted outcome rather than an anomaly \citep{wu2026transts}.
 
 \subsection{RSNA Grounding}
 
-The RSNA grounding path evaluates NIH \texttt{Pneumonia} probability against RSNA \texttt{Lung Opacity}. Grad-CAM overlays are generated only for non-abstained, confidence-gated examples. The overlays are weak engineering artifacts, not clinical evidence.
+The RSNA grounding path evaluates NIH \texttt{Pneumonia} probability against RSNA \texttt{Lung Opacity}. Grad-CAM \citep{selvaraju2017gradcam} overlays are generated only for non-abstained, confidence-gated examples; Grad-CAM++ \citep{chattopadhay2018gradcampp}, which uses higher-order gradient weighting and is better suited to diffuse or multi-instance findings, is implemented as a secondary method but is not the default in current results. The overlays are weak engineering artifacts, not clinical evidence.
+
+\subsection{Selective Prediction}
+
+Selective prediction follows the reject-option framework of \citet{geifman2017selective}: rather than a single decision threshold, each class uses a two-sided band $(\tau_{lo}, \tau_{hi})$, and the model abstains whenever a predicted probability falls inside the band instead of committing to a positive or negative call. Rare classes use narrower, separately tuned bands. This lets coverage and risk be reported jointly rather than collapsing abstention into a single accuracy number.
 
 \subsection{VQA/API/OOD}
 
-Phase 4A remains rule-based and fixed-template. It uses safety disclaimers, OOD checks, abstention behavior, and evidence-gating rules. The optional VLM/QLoRA path exists as scaffolding but has not been trained.
+Phase 4A remains rule-based and fixed-template. It uses safety disclaimers, OOD checks, abstention behavior, and evidence-gating rules. The optional VLM/QLoRA path exists as scaffolding but has not been trained: it targets 4-bit NF4 quantization with LoRA adapters \citep{hu2022lora} following the QLoRA recipe \citep{dettmers2023qlora}, restricted to the attention projection matrices.
