@@ -107,13 +107,16 @@ design decisions, and code changes must not silently drop them.
 
 ## 5. Work backlog, in priority order
 
-**P0 — `report/references.bib` is currently empty.** Populate it. Core set:
-Wang et al. CVPR 2017 (ChestX-ray8); Rajpurkar et al. 2017 (CheXNet);
-Guo et al. ICML 2017 (calibration); Selvaraju et al. ICCV 2017 (Grad-CAM);
-Chattopadhay et al. WACV 2018 (Grad-CAM++); Saporta et al. NMI 2022 (saliency
-benchmark); Geifman & El-Yaniv NeurIPS 2017 (selective prediction);
+**P0 — `report/references.bib` has 3 entries (calibration-under-label-noise track:
+`wu2026transts`, `frenkel2021classbased`, `li2022noisetransition`), 2 still marked
+`% TODO: verify`. None of the three are `\cite`'d anywhere in `report/sections/` yet.
+Still missing: the foundational core set — Wang et al. CVPR 2017 (ChestX-ray8);
+Rajpurkar et al. 2017 (CheXNet); Guo et al. ICML 2017 (calibration); Selvaraju et al.
+ICCV 2017 (Grad-CAM); Chattopadhay et al. WACV 2018 (Grad-CAM++); Saporta et al. NMI
+2022 (saliency benchmark); Geifman & El-Yaniv NeurIPS 2017 (selective prediction);
 Hu et al. 2021 (LoRA); Dettmers et al. 2023 (QLoRA); Mitchell et al. 2019 (model cards);
-Gebru et al. 2018 (datasheets). Verify each entry; flag anything uncertain.
+Gebru et al. 2018 (datasheets). Add these, verify each entry, and wire in the actual
+`\cite` calls.**
 
 **P0 — add explicit research questions to `report/sections/01_introduction.tex`.**
 Suggested framing:
@@ -129,11 +132,6 @@ Suggested framing:
 **P1 — run isotonic and Platt calibration** (code already exists) and produce a
 three-way comparison table against temperature scaling. Discuss the flexibility vs.
 overfitting tradeoff given low positive counts in rare classes.
-
-**P1 — turn `notebooks/03_error_analysis.ipynb` into a real error analysis.** It
-currently contains only a Grad-CAM audit verdict. Needed: per-class FP/FN breakdown,
-abstention behaviour on rare classes, a categorized failure-case gallery from the
-existing overlays.
 
 **P1 — bootstrap confidence intervals** for AUROC, AUPRC, and ECE. Point estimates
 alone are weak for an academic write-up.

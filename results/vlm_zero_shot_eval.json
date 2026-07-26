@@ -1,5 +1,6 @@
 {
-  "WARNING_DO_NOT_USE": "synthetic_smoke_only_not_a_real_evaluation",
+  "synthetic_qa_set": true,
+  "provenance_note": "rule_based comparison is a real, fully computed evaluation (2778 records) over a synthetic template-generated QA set, not real clinical questions; vlm_zero_shot is not computed (see dependency_status.missing)",
   "backend": "zero_shot",
   "comparison": {
     "rule_based": {

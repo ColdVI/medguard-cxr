@@ -15,7 +15,7 @@ Calibration & \texttt{make calibrate} & \textbf{real completed} & \texttt{result
 RSNA grounding & \texttt{make eval-grounding-rsna} & \textbf{real completed} & \texttt{results/grounding\_rsna\_eval.json} & pneumonia AUROC 0.8077; pointing 0.5138; IoU 0.2551 & pneumonia/lung-opacity only \\
 API health & TestClient & \textbf{real completed} & runtime check & HTTP 200; VLM disabled & local real-checkpoint inference when artifacts exist; smoke fallback otherwise \\
 Gradio & \texttt{build\_demo()} & \textbf{smoke-tested shell} & runtime check & Blocks object created & local demo shell only \\
-Rule-based VQA & \texttt{make eval-vlm-zero-shot} & \textbf{real baseline completed} & \texttt{results/vlm\_zero\_shot\_eval.json} & exact match 0.6091; template adherence 1.0 & fixed-template only; no free-text VLM claim \\
+Rule-based VQA & \texttt{make eval-vlm-zero-shot} & \textbf{real baseline completed} & \texttt{results/vlm\_zero\_shot\_eval.json} & exact match 0.6091; template adherence 1.0 & synthetic template-generated QA set, not real clinical questions; fixed-template only; no free-text VLM claim \\
 VLM/QLoRA & explicit Phase 4B script & \textbf{deferred / not run} & \texttt{results/vlm\_lora\_train.json} & epochs completed 0 & adapter training path exists; no trained adapter \\
 \bottomrule
 \end{longtable}
