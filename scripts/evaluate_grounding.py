@@ -49,6 +49,9 @@ def main(argv: list[str] | None = None) -> int:
         config.setdefault("gradcam", {})["cam_threshold"] = args.cam_threshold
     if args.split is not None:
         config.setdefault("split", {})["eval"] = args.split
+    if args.box_extraction is not None:
+        config.setdefault("gradcam", {})["box_extraction"] = args.box_extraction
+    box_extraction = str(config.get("gradcam", {}).get("box_extraction", "single"))
     dataset_name = str(config.get("data", {}).get("dataset", ""))
     if dataset_name != "rsna-pneumonia-detection":
         raise RuntimeError("evaluate_grounding.py currently supports configs/grounding_rsna.yaml.")
@@ -72,7 +75,7 @@ def main(argv: list[str] | None = None) -> int:
             checkpoint_path=args.checkpoint,
             max_samples=args.max_samples,
             overlay_count=args.overlay_count,
-            box_extraction=args.box_extraction,
+            box_extraction=box_extraction,
             min_box_area_fraction=args.min_box_area_fraction,
         )
 
@@ -355,8 +358,11 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser.add_argument(
         "--box-extraction",
         choices=("single", "multi"),
-        default="single",
-        help="single: one box spanning all CAM support. multi: one box per connected component.",
+        default=None,
+        help=(
+            "Override gradcam.box_extraction (config default: single). "
+            "single: one box spanning all CAM support. multi: one box per connected component."
+        ),
     )
     parser.add_argument(
         "--split",

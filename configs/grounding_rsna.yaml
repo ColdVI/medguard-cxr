@@ -42,6 +42,7 @@ gradcam:
   confidence_gate: 0.70
   skip_abstained: true
   cam_threshold: 0.80
+  box_extraction: multi
   target_class_mapping:
     Pneumonia:
       - Lung Opacity
