@@ -19,7 +19,7 @@ from medguard.data.nih import (
 
 
 def test_nih_dataset_sample_shape_dtype_and_labels(tmp_path: Path) -> None:
-    """Dataset returns image, multi-label target, patient_id, and path."""
+    """Dataset returns image, multi-label target, image_id, patient_id, and path."""
     config = make_tiny_nih_config(tmp_path)
     dataset = NIHChestXray14Dataset.from_config(config, split="train")
 
@@ -32,6 +32,9 @@ def test_nih_dataset_sample_shape_dtype_and_labels(tmp_path: Path) -> None:
     assert set(sample["label"].tolist()) <= {0.0, 1.0}
     assert sample["patient_id"]
     assert sample["path"].endswith(".png")
+    # image_id joins per-sample logit dumps back to the source image
+    assert sample["image_id"]
+    assert sample["path"].endswith(sample["image_id"])
 
 
 def test_official_split_files_and_dataloader_profile_are_used(tmp_path: Path) -> None:

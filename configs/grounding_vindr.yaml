@@ -81,15 +81,9 @@ localization:
 safety:
   note: "Grad-CAM heatmaps are engineering review artifacts only, not clinically validated evidence."
 
-phase_gate:
-  phase4_entry_status: deferred_not_phase4_gate
-  accepted_real_localization_datasets:
-    - vindr-cxr
-  require_real_localization_before_phase4: false
-  synthetic_smoke_is_blocking_for_phase4: true
-  required_before_reactivation:
-    - owner approval to reactivate VinDr-CXR
-    - updated data audit and datasheet entry
-    - local VinDr-CXR annotations and images available under data.root
-    - real localization metrics written to results/grounding_vindr_eval.json
-    - Phase 3B visual audit rerun on VinDr overlays
+status:
+  active: false
+  note: >-
+    VinDr-CXR is inactive. Reactivating it needs the images and annotations under
+    data.root, a datasheet entry describing them, and a real localization run that
+    writes results/grounding_vindr_eval.json. Until then no VinDr number exists.

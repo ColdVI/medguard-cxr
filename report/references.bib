@@ -1,2 +1,41 @@
-% References intentionally left empty for the current portfolio report.
-% Add dataset and method citations in a future citation pass.
+% MedGuard-CXR bibliography.
+%
+% Discipline: every entry here must be verifiable. Anything whose authors, venue or
+% year is not confirmed carries a "% TODO: verify" line and must not be cited in the
+% report until it is checked. Do not add an entry from memory.
+
+@article{wu2026transts,
+  title   = {{TransTS}: an adaptive post-hoc method for probability calibration under label noise},
+  author  = {Wu, Yuefei and Shi, Bin and Dong, Bo and Zheng, Qinghua},
+  journal = {Science China Information Sciences},
+  volume  = {69},
+  number  = {2},
+  pages   = {122105},
+  year    = {2026},
+  doi     = {10.1007/s11432-025-4576-9},
+  note    = {Label noise breaks the calibration equation, which makes temperature
+             scaling over-calibrate. This is the theoretical basis for reading the
+             flat ECE result in this project as predicted rather than anomalous.}
+}
+
+@inproceedings{frenkel2021classbased,
+  title     = {Network calibration by class-based temperature scaling},
+  author    = {Frenkel, Lior and Goldberger, Jacob},
+  booktitle = {29th European Signal Processing Conference (EUSIPCO)},
+  year      = {2021},
+  note      = {Origin of the per-class temperature scaling used as this project's
+               calibration baseline.}
+  % TODO: verify page numbers and publisher fields before submission.
+}
+
+@inproceedings{li2022noisetransition,
+  title     = {Estimating noise transition matrix with label correlations for noisy
+               multi-label learning},
+  author    = {Li, Shikun and Xia, Xiaobo and Deng, Han and Ge, Shiming and Liu, Tongliang},
+  booktitle = {Advances in Neural Information Processing Systems (NeurIPS)},
+  year      = {2022},
+  note      = {Closest prior art for the noisy multi-label setting: noise transition
+               matrices estimated with label correlations, which is the regime NIH
+               ChestX-ray14 sits in.}
+  % TODO: verify the full author list and volume/page fields before submission.
+}

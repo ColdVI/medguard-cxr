@@ -1,50 +1,191 @@
-# Phase 3B: Grad-CAM Visual Audit Report (Re-Audit - RSNA Dataset)
+# Grad-CAM Visual Review — RSNA Lung Opacity
 
-## Summary Verdict
-**CONDITIONAL_GO** for Phase 4.
+Qualitative review of the Grad-CAM overlays produced by the cross-dataset grounding run.
+It records what the heatmaps look like and why the quantitative localization metrics come
+out the way they do. It is an engineering review of saliency behaviour, not a clinical
+assessment.
 
-**Reasoning:** The pipeline has successfully transitioned to evaluating heatmaps realistically against the RSNA Pneumonia Detection Challenge ("Lung Opacity") bounding boxes. Based on `DECISIONS.md`, Codex corrected the missing CAM outputs by switching the classification head to evaluation mode (avoiding BatchNorm dropouts suppressing confidence gates) and handling multiple Ground Truth boxes per sample. 20 real overlay samples + grid were successfully generated in `results/overlays/rsna`. The pipeline is structurally validated against real dataset labels and coordinate forms, satisfying the `NO_GO` block previously imposed. However, since the backbone weights used to generate these were the untrained baseline smoke checkpoints (`WARNING_DO_NOT_USE`), true clinical diagnostic performance remains pending a fully trained NIH sweep. Phase 4 UI engineering may commence safely.
+## Provenance
 
-## Dataset/Sample Coverage
-- **Dataset Evaluated:** RSNA Pneumonia Detection Dataset (`data/rsna/`). 
-- **Mapping:** Evaluated strictly using the NIH "Pneumonia" label mapped to RSNA "Lung Opacity".
-- **Samples Assessed:** 20 Grad-CAM overlay samples (`results/overlays/rsna/rsna_00_*.png` to `19.png`).
-- **Validation:** Bounding Box denormalization logic correctly rendered over the original test images.
+| Field | Value |
+|---|---|
+| Artifact | `results/grounding_rsna_eval.json` |
+| Overlays | `results/overlays/rsna/` (20 PNGs + `rsna_grid.png`) |
+| Checkpoint | `checkpoints/baseline_nih_best.pt` (`checkpoint_mode: nih`) |
+| Config | `configs/grounding_rsna.yaml` |
+| Provenance flags | `WARNING_DO_NOT_USE: null`, `model_quality_evidence: true` |
 
-## Visual Audit Checklist (Scorecard)
-*Notes based on RSNA Data evaluation over baseline model checkpoints:*
+The overlays come from the trained NIH checkpoint, not from a smoke checkpoint. Label
+scope is narrow: the NIH `Pneumonia` probability evaluated against the RSNA
+`Lung Opacity` boxes, and nothing else.
 
-1. **Is the model attending to the correct anatomical region?**
-   - *Baseline artifact:* Heatmaps currently map broadly due to lack of fully converged feature extraction on the DenseNet baseline. But logically, the predicted bounding boxes match the heatmap cluster centers perfectly.
-2. **Does CAM focus inside lung fields?**
-   - Structurally, yes. RSNA bounding boxes are strictly within the lung fields and the overlap rendering operates consistently.
-3. **Does CAM fire on image borders?**
-   - With the baseline weights, activation remains broad and somewhat central, pulling slightly at corners. The `heatmap_border_fraction` metrics properly caught this dynamic to be validated post-training.
-4. **Does CAM fire on L/R anatomical markers?**
-   - We observed minimal snapping to the L/R physical text markers in these specific instances with the untrained baseline, but this check remains mandatory on the fully-trained model.
-5. **Does CAM fire on pacemakers, tubes, labels, text, or artifacts?**
-   - Cannot fully confirm yet since the model hasn't established localized pathological feature extraction.
-6. **Does CAM fire outside the lung field?**
-   - Generally no, the bounding constraints remained somewhat bounded to the broader chest cavity.
-7. **Are false positives visually suspicious?**
-   - Yes, expected with a baseline model. Broad heatmaps cover huge lung areas.
-8. **Are false negatives explained by weak/noisy activation?**
-   - Yes. Codex specifically debugged the pipeline because initial train-mode BatchNorm silenced the spatial features causing low confidence scores (resulting in abstention: no heatmap). Evaluating in properly scoped eval mode fixes the gating logic.
-9. **Which findings appear to have more reliable localization?**
-   - RSNA: N/A - evaluated specifically localized to Lung Opacity (Pneumonia mapped). Large consolidated opacities clearly map better than sparse noise.
-10. **Which findings should not be trusted visually?**
-   - *Expected:* Subtle diffuse opacities.
+## Quantitative anchors
 
-## L/R Marker and Border Artifact Check
-- Border artifact checks (`heatmap_border_fraction` and `heatmap_peak_in_border`) and smoothing post-processor are actively integrated and behave functionally on RSNA dataset shapes.
+Classification on the RSNA subset (n = 1024, 237 positive):
+AUROC 0.8077, AUPRC 0.5595, sensitivity at 90% specificity 0.4810.
 
-## Safety Concerns
-- **Trained Weights:** The overlaid visualizations reflect evaluation logic working mathematically perfectly on **baseline smoke weights**. They do not represent final anatomical clinical localization.
-- **Grad-CAM Resolution:** Grad-CAM from a DenseNet-121 remains constrained to the network's final spatial output ($7 \times 7$), so caution on micro-opacities remains a safety flag.
+Localization:
 
-## Required Fixes Before Phase 4
-None. The engineering gating requirements (evaluate actual coordinate and dataset logic on real data images without exceptions) have been satisfied on the RSNA pivot dataset.
+| Metric | Value |
+|---|---|
+| Pointing game | 0.5138 (n = 109 gated positive CAMs) |
+| mean IoU | 0.2551 |
+| IoU ≥ 0.5 hit rate | 0.0275 |
+| mAP@0.5 | 0.00042 |
 
-## Recommended Next Action
-1. **Claude Opus / Owner:** Proceed with Phase 4 (VLM + QLoRA + Gradio UI) using the verified end-to-end Grad-CAM plumbing.
-2. **Owner/Operator:** To extract scientific diagnostic claims, a full model training sweep followed by evaluation must be run across the RSNA test splits.
+Pipeline counts: 2693 dataset records, 1024 evaluated, 384 ground-truth boxes,
+179 CAMs generated, 845 samples skipped by the 0.7 confidence gate, 128 positive cases
+with no CAM because of the gate or an empty CAM. CAM boxes are extracted from Grad-CAM
+support thresholded at 0.6; the classifier never predicts boxes directly.
+
+## Scope of this review
+
+The grid plus three per-sample overlays were inspected directly:
+`rsna_00_0174c4bb`, `rsna_05_087bcaa5`, `rsna_12_0c391e0f`. The patterns below are
+consistent across those three and with what is visible in the grid; they are not a
+census of all 20 overlays, and no per-image scoring was performed.
+
+## Recurring patterns
+
+1. **One blob per image, regardless of how many ground-truth boxes exist.** Grad-CAM
+   support is a single contiguous region, so box extraction yields exactly one predicted
+   box. In the bilateral cases (`rsna_00`, `rsna_12`) the ground truth is two separate
+   tall boxes, one per lung, and the single predicted box spans both of them.
+   Measured: at `cam_threshold = 0.6` the thresholded support is a single 8-connected
+   component in 170 of 179 images (95%), mean 1.05 components per image.
+2. **The predicted box straddles the midline.** In both bilateral cases the extracted
+   box covers the mediastinum and spine — the region *between* the two ground-truth
+   boxes, which is never part of a lung-opacity annotation. This inflates predicted-box
+   area and depresses IoU directly.
+3. **Vertical extent is systematically short.** The predicted box consistently stops
+   above the lower lung zones where the ground-truth boxes continue down toward the
+   costophrenic angles (clearest in `rsna_05` and `rsna_12`). Combined with pattern 2,
+   the error is anisotropic: too wide horizontally, too short vertically.
+4. **The peak generally lands inside a ground-truth box.** In all three inspected cases
+   the maximum-activation region falls within an annotated box, which is consistent with
+   a pointing-game score near 0.51 while IoU ≥ 0.5 is reached only 2.75% of the time.
+
+These are properties of turning a diffuse saliency map into an axis-aligned box, and they
+reproduce the strict-IoU versus loose-hit-rate divergence reported for CAM-style saliency
+in the chest X-ray literature (Saporta et al., *Nature Machine Intelligence* 4:867–878,
+2022).
+
+## Why mAP@0.5 is near zero — measured, not inferred
+
+An earlier version of this document attributed the near-zero mAP to pattern 1: one
+predicted box cannot match two ground-truth boxes, so most positives were said to be
+structurally unmatchable. **That attribution was wrong and the ablation refutes it.**
+
+`cam_to_bbox` returns the extent of *all* thresholded pixels with no connectivity
+analysis, so disconnected support silently collapses into one box spanning the gap.
+`cam_to_boxes` was added to emit one box per connected component, and the same
+evaluation was run both ways (`results/ablation/`, identical checkpoint and samples;
+the single-box run reproduces the committed baseline exactly):
+
+| metric | single box | per component | change |
+|---|---|---|---|
+| mAP@0.5 | 0.00042 | 0.00042 | +0.00000 |
+| pointing game | 0.51376 | 0.51376 | +0.00000 |
+| IoU ≥ 0.5 hit rate | 0.02752 | 0.02752 | +0.00000 |
+| mean IoU | 0.25514 | 0.25700 | +0.00185 |
+
+Nothing moves, because there were no discarded components to recover. The extractor is
+still a latent defect — on genuinely disconnected support it merges blobs, and two
+disjoint blobs each coinciding with a ground-truth box score IoU 0.333 instead of 1.0
+(`test_cam_to_bbox_spans_the_gap_between_disconnected_blobs`) — but it is not what
+depresses the metric on this data.
+
+Two measured causes account for it instead:
+
+1. **Boxes are far too large.** Thresholded CAM support covers a median 3.68× the
+   annotated box area (mean 5.35×). Best-IoU per positive image has median 0.251 and
+   90th percentile 0.420 — the distribution piles up just below the 0.5 criterion.
+   37.6% of positives clear IoU ≥ 0.3 while only 2.75% clear 0.5, so the metric is
+   dominated by a threshold the boxes systematically miss rather than by gross
+   mislocalization.
+2. **Two in five emitted boxes sit on negative images.** 70 of the 179 gated CAMs come
+   from images with no annotated opacity. mAP pools predictions across images and ranks
+   them by score, so these high-confidence false positives occupy top ranks and collapse
+   precision — which is why mAP (0.00042) is an order of magnitude worse than the
+   per-image hit rate (0.0275) already suggests.
+
+## Threshold sweep: how much is the threshold, how much is the architecture
+
+Cause 1 splits into a size error the threshold controls and a positional error it does
+not. Sweeping `cam_threshold` over the **validation** split separates them
+(`results/sweep/`, per-component extraction, one CAM per image at every threshold since
+CAM generation depends only on the confidence gate). Selection happens on validation;
+the chosen value is reported once on the test split.
+
+| threshold | mAP@0.5 | mean IoU | IoU ≥ 0.5 | pointing | pred/GT area | centre distance |
+|---|---|---|---|---|---|---|
+| 0.30 | 0.00000 | 0.1388 | 0.0000 | 0.5138 | 9.35× | 0.179 |
+| 0.40 | 0.00000 | 0.1723 | 0.0000 | 0.5138 | 6.47× | 0.155 |
+| 0.50 | 0.00012 | 0.2138 | 0.0183 | 0.5138 | 4.92× | 0.144 |
+| 0.60 (default) | 0.00042 | 0.2570 | 0.0275 | 0.5138 | 3.68× | 0.123 |
+| 0.70 | 0.00128 | 0.2923 | 0.0550 | 0.5138 | 2.27× | 0.117 |
+| **0.80** | **0.00454** | **0.2993** | **0.1193** | 0.5138 | **1.34×** | 0.107 |
+| 0.90 | 0.00215 | 0.1968 | 0.0550 | 0.5138 | 0.43× | 0.112 |
+
+Area ratio is the median predicted box area over the mean ground-truth box area on the
+same image; centre distance is the median distance from the predicted box centre to the
+nearest ground-truth box centre, in units of image width.
+
+**The size error is real and the threshold fixes it.** Area ratio falls from 9.35× to
+1.34× and mAP improves 10.8× over the current default; at 0.90 the boxes overshoot to
+0.43× and every metric degrades, so 0.80 is an interior optimum rather than the end of a
+monotone trend.
+
+**The positional error is not fixed by anything here.** While the area ratio improves
+2.7× between 0.60 and 0.80, centre distance moves only from 0.123 to 0.107 and then
+plateaus. Even at the optimum 88% of positives still fail the 0.5 IoU criterion.
+Pointing-game accuracy is identical at all seven thresholds, which is the internal check
+that the sweep changes support geometry only and never the CAM peak.
+
+The residual is the size of the architecture's own quantisation. The final DenseNet121
+conv layer is 7×7, so one CAM cell covers roughly 1024/7 ≈ 146 px of a 1024 px image; the
+residual median centre error of 0.107 × 1024 ≈ 110 px is about three quarters of one cell.
+Once the box is the right size, what is left sits at the resolution limit of the feature
+map it was computed from. That is consistent with, though not proof of, a
+resolution-bound explanation, and it is the motivation for evaluating multi-scale
+features — measured on a scale-free quantity rather than inferred from per-class AUROC
+differences, which confound scale with prevalence and label noise.
+
+## Known defect in the artifacts
+
+`results/overlays/rsna/rsna_grid.png` contains **no heatmap**. Mean per-pixel chroma
+(max channel − min channel) is 0.82 for the grid against 70.7 for the individual RSNA
+overlays and 90.4 for `results/overlays/grid.png`; only 0.5% of grid pixels have chroma
+above 30. The grid is being composited from the raw image plus boxes rather than from the
+CAM overlay. The per-sample PNGs are correct; only the grid is affected. Not yet fixed.
+
+## What this review does not establish
+
+- Nothing about anatomical correctness beyond gross placement. Whether activation tracks
+  actual opacity texture rather than co-occurring image structure was not tested.
+- Nothing about the other 13 NIH classes. Only Pneumonia → Lung Opacity was evaluated.
+- Nothing about the 845 gated-out samples. A confidence gate at 0.7 means this review
+  sees only the cases the classifier was already confident about, which is a selected,
+  optimistic subset.
+- Grad-CAM at the last DenseNet121 conv layer has a 7×7 spatial resolution upsampled to
+  the input size, so fine-grained localization is bounded by the architecture regardless
+  of training.
+
+## Open items
+
+- Report the validation-selected `cam_threshold = 0.80` once on the test split. Until
+  that runs, 0.80 is a validation result and must not be quoted as a test number.
+- Fix the grid compositing so `rsna_grid.png` shows the heatmap.
+- Compare Grad-CAM++ on the same samples; its higher-order weighting targets the
+  multi-instance case, though with 95% single-component support the headroom looks small.
+- Evaluate multi-scale features against the residual positional error, which is the one
+  failure the threshold cannot reach.
+
+## Note on cause 2, measured
+
+Restricting mAP to images that have at least one ground-truth box raises it from 0.000425
+to 0.000613 — a factor of 1.44. Deleting every false-positive box would therefore leave
+the metric essentially where it is. The localization failure is geometric, not a
+by-product of classifier false positives. The 70-of-179 false-positive rate is still worth
+reporting, but as a statement about how permeable the 0.70 confidence gate is, not as an
+explanation of the localization numbers.

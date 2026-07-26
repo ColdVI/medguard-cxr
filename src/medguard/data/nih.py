@@ -128,6 +128,7 @@ class NIHChestXray14Dataset(Dataset[dict[str, Any]]):
         return {
             "image": image,
             "label": record.label.clone(),
+            "image_id": record.image_id,
             "patient_id": record.patient_id,
             "path": str(path),
         }

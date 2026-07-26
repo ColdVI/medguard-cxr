@@ -1,4 +1,4 @@
-# Phase 0B: Data Audit Report
+# Data Audit
 **Dataset:** NIH ChestX-ray14 & RSNA Pneumonia Detection Challenge 2018
 
 ## 1. Data Leakage Risk Report
@@ -33,17 +33,19 @@ Performance must be monitored across demographic and technical metadata to ensur
 * **View Position (PA vs. AP):** Post-Anterior (PA) and Antero-Posterior (AP) views magnify the heart differently. Models may spuriously correlate AP views (often taken in portable settings for sicker patients) with severity.
 * **Lateral Issues:** Ensure lateral scans are uniformly discarded or robustly handled per the Out-of-Distribution (OOD) pipeline if accidentally included.
 
-## 5. Phase 1 Warnings for Codex
-**Attention Codex — Critical Implementation Rules:**
+**Status: not executed.** This section is a plan. No subgroup or fairness evaluation has
+been run, and no results in `results/` are stratified by age, sex, or view position. No
+fairness claim can be made from this project's artifacts.
+
+## 5. Critical Implementation Rules
 * **Do NOT use Softmax:** Pathologies are not mutually exclusive. A patient can have multiple findings. Ensure standard multi-label handling.
 * **Loss Function strictly BCEWithLogitsLoss:** Ensure the classification head outputs raw logits. Pass logits directly to `BCEWithLogitsLoss` which is numerically stable. **Do not apply a Sigmoid before the loss function.**
 * **Sigmoid is for inference only:** Only apply `torch.sigmoid()` when converting network outputs to probabilities for evaluation or UI visualization. 
 * **No test-set tuning:** Do not perform any threshold or temperature tuning on the test set. All calibrations and hyperparameter choices happen exclusively on the validation set.
-* **NIH labels are global only:** Do not treat NIH image-level labels as ground truth for localization (bounding boxes). Phase 3 addresses RSNA Pneumonia Detection for pneumonia/lung-opacity spatial localization metrics only.
+* **NIH labels are global only:** Do not treat NIH image-level labels as ground truth for localization (bounding boxes). Spatial localization metrics come from RSNA Pneumonia Detection, and cover pneumonia/lung-opacity only.
 
-## 6. Phase 3B Data-Unblock Addendum
-RSNA Pneumonia Detection Challenge 2018 is the active localization audit dataset
-for this course project.
+## 6. RSNA Localization Scope
+RSNA Pneumonia Detection Challenge 2018 is the localization dataset for this project.
 
 **RSNA scope:**
 * Use only provider-supplied lung-opacity bounding boxes from
@@ -55,15 +57,16 @@ for this course project.
   training rows unless an explicit manifest is supplied.
 * Do not use Kaggle hidden test rows for tuning or model selection.
 
-**Phase 3R status:**
-The current RSNA validation report uses a bounded validation subset with both
-positive and negative RSNA rows so that Pneumonia AUROC/AUPRC can be computed.
-Because the available NIH checkpoint is smoke-trained, the report is marked
-`WARNING_DO_NOT_USE` and must be read as pipeline validation rather than model
-performance evidence.
+**Current status:**
+The RSNA report uses a bounded validation subset containing both positive and
+negative RSNA rows so that Pneumonia AUROC/AUPRC can be computed. It was produced
+from the trained NIH checkpoint: `results/grounding_rsna_eval.json` carries
+`WARNING_DO_NOT_USE: null` and `model_quality_evidence: true`. If a smoke-trained
+checkpoint is ever used again, the report must carry the smoke warnings instead.
 
-**Phase 4 gate:**
-Synthetic overlays are still insufficient for model-quality claims. A real RSNA
-Pneumonia localization run must produce metrics and Gemini must audit real
-overlays. The report must retain smoke warnings if the classifier checkpoint
-remains smoke-trained.
+**What these numbers support:**
+They are localization metrics for one mapped class on one external dataset, under a
+0.7 confidence gate that removes most samples before localization is scored. They
+support statements about how CAM-derived boxes compare to provider annotations, and
+nothing about diagnostic performance, other findings, or fairness. The qualitative
+counterpart is `docs/gradcam_visual_audit.md`.

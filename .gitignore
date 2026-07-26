@@ -14,13 +14,20 @@ dist/
 
 results/*
 !results/*.json
-# allow Phase 2 published artifacts
+# published metric artifacts and review overlays
 !results/*.png
 !results/overlays/
 !results/overlays/*.png
 !results/overlays/rsna/
 !results/overlays/rsna/*.png
 !results/.gitkeep
+# ablation and sweep metrics are cited in docs/; their overlay dirs are not
+!results/ablation/
+results/ablation/*
+!results/ablation/*.json
+!results/sweep/
+results/sweep/*
+!results/sweep/*.json
 
 calibrators/*
 !calibrators/.gitkeep

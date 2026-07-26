@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import csv
 import json
 import random
 from collections.abc import Mapping
@@ -27,6 +28,20 @@ def parse_args() -> argparse.Namespace:
     """Parse evaluation arguments."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", default="configs/baseline_nih.yaml")
+    parser.add_argument(
+        "--split",
+        default="test",
+        choices=("train", "val", "test"),
+        help="Split to evaluate. Use val to produce logits for post-hoc calibration fitting.",
+    )
+    parser.add_argument(
+        "--per-sample-output",
+        type=Path,
+        help=(
+            "Write a per-sample CSV of raw logits and labels. Probabilities are a pure "
+            "function of the logits, so any calibrator can be fitted offline from this file."
+        ),
+    )
     return parser.parse_args()
 
 
@@ -38,7 +53,12 @@ def main() -> None:
     labels = list(config.get("data", {}).get("labels", []))
 
     if dataset_available(config):
-        report = evaluate_nih(config, labels)
+        report = evaluate_nih(
+            config,
+            labels,
+            split=args.split,
+            per_sample_output=args.per_sample_output,
+        )
     else:
         report = evaluate_smoke(config, labels)
 
@@ -63,10 +83,15 @@ def set_seed(seed: int) -> None:
     torch.manual_seed(seed)
 
 
-def evaluate_nih(config: Mapping[str, Any], labels: list[str]) -> dict[str, Any]:
-    """Evaluate on the configured NIH test split."""
+def evaluate_nih(
+    config: Mapping[str, Any],
+    labels: list[str],
+    split: str = "test",
+    per_sample_output: Path | None = None,
+) -> dict[str, Any]:
+    """Evaluate on the configured NIH split."""
     try:
-        dataset = NIHChestXray14Dataset.from_config(config, split="test")
+        dataset = NIHChestXray14Dataset.from_config(config, split=split)
     except DatasetUnavailableError as exc:
         return evaluate_smoke(config, labels, reason=str(exc))
 
@@ -89,20 +114,69 @@ def evaluate_nih(config: Mapping[str, Any], labels: list[str]) -> dict[str, Any]
 
     all_logits: list[torch.Tensor] = []
     all_labels: list[torch.Tensor] = []
+    image_ids: list[str] = []
     with torch.no_grad():
         for batch in loader:
             logits = model(batch["image"].to(device))
             all_logits.append(logits.cpu())
             all_labels.append(batch["label"].cpu())
+            image_ids.extend(batch["image_id"])
 
+    logits_tensor = torch.cat(all_logits)
     y_true = torch.cat(all_labels).numpy()
-    y_prob = probabilities_from_logits(torch.cat(all_logits)).numpy()
-    return {
+    y_prob = probabilities_from_logits(logits_tensor).numpy()
+    report = {
         "mode": "nih",
+        "split": split,
         "checkpoint_loaded": checkpoint_loaded,
         "num_samples": int(y_true.shape[0]),
         **classification_report(y_true, y_prob, labels),
     }
+    if per_sample_output is not None:
+        write_per_sample_logits(
+            output_path=per_sample_output,
+            image_ids=image_ids,
+            logits=logits_tensor.numpy(),
+            y_true=y_true,
+            labels=labels,
+        )
+        report["per_sample_logits"] = str(per_sample_output)
+    return report
+
+
+def write_per_sample_logits(
+    output_path: Path,
+    image_ids: list[str],
+    logits: np.ndarray,
+    y_true: np.ndarray,
+    labels: list[str],
+) -> None:
+    """Write raw logits and ground-truth labels for every evaluated image.
+
+    Raw logits are stored rather than probabilities because every calibrator in this
+    project is a function of the logit alone: sigmoid, temperature scaling, isotonic and
+    Platt can all be fitted or applied offline from this file without another forward
+    pass. Storing probabilities instead would discard that.
+    """
+
+    if logits.shape != y_true.shape:
+        raise ValueError("logits and labels must have the same shape.")
+    if len(image_ids) != logits.shape[0]:
+        raise ValueError("image_ids must have one entry per evaluated image.")
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    header = ["image_id"]
+    header += [f"label_{name}" for name in labels]
+    header += [f"logit_{name}" for name in labels]
+    with output_path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.writer(handle)
+        writer.writerow(header)
+        for index, image_id in enumerate(image_ids):
+            row: list[Any] = [image_id]
+            row += [int(value) for value in y_true[index]]
+            row += [f"{float(value):.6f}" for value in logits[index]]
+            writer.writerow(row)
+    print(f"Wrote per-sample logits for {len(image_ids)} images to {output_path}")
 
 
 def evaluate_smoke(

@@ -150,22 +150,30 @@ def test_nih_to_rsna_mapping_is_explicit() -> None:
     assert NIH_TO_RSNA_LABELS["Pneumothorax"] == []
 
 
-def test_grounding_rsna_config_records_phase4a_go_and_phase4b_block() -> None:
-    """The RSNA config records Phase 4A entry and Phase 4B real-checkpoint gate."""
+def test_grounding_rsna_config_maps_pneumonia_only() -> None:
+    """Exactly one NIH label is mapped, so no other class can report a silent zero.
+
+    RSNA annotates lung opacity and nothing else. If a second NIH label were mapped it
+    would be scored against boxes that cannot support it, and the resulting near-zero
+    metric would read as a model result rather than a missing-annotation artifact.
+    """
 
     config = yaml.safe_load(Path("configs/grounding_rsna.yaml").read_text(encoding="utf-8"))
-    gate = config["phase_gate"]
 
-    assert (
-        gate["phase4_entry_status"]
-        == "phase4a_engineering_allowed_phase4b_blocked_until_real_checkpoint"
-    )
-    assert gate["require_real_localization_before_phase4a"] is False
-    assert gate["require_real_checkpoint_before_phase4b"] is True
-    assert gate["synthetic_smoke_is_blocking_for_phase4b"] is True
-    assert "required_before_phase4b" in gate
-    assert "rsna-pneumonia-detection" in gate["accepted_real_localization_datasets"]
-    assert gate["accepted_real_localization_datasets"] == ["rsna-pneumonia-detection"]
+    mapping = config["gradcam"]["target_class_mapping"]
+    assert list(mapping) == ["Pneumonia"]
+    assert mapping["Pneumonia"] == ["Lung Opacity"]
+    assert config["data"]["labels"] == ["Lung Opacity"]
+
+
+def test_grounding_rsna_config_never_reads_kaggle_hidden_test_rows() -> None:
+    """Splits come from the public labelled training images only."""
+
+    config = yaml.safe_load(Path("configs/grounding_rsna.yaml").read_text(encoding="utf-8"))
+
+    assert config["data"]["image_dir"] == "stage_2_train_images"
+    assert config["data"]["labels_csv"] == "stage_2_train_labels.csv"
+    assert config["split"]["val_fraction"] + config["split"]["test_fraction"] < 1.0
 
 
 def _write_rsna_fixture(

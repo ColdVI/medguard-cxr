@@ -177,16 +177,17 @@ def test_vindr_dataset_available_requires_image_and_annotation(tmp_path: Path) -
     assert dataset_available(config) is True
 
 
-def test_grounding_config_blocks_phase4_until_real_localization_audit() -> None:
-    """VinDr config is retained only as deferred future work."""
+def test_grounding_vindr_config_stays_inactive() -> None:
+    """VinDr is retained as deferred work and must not contribute a reported number.
+
+    The config exists so the design is documented, not so it can be run. Flipping it to
+    active without the images, annotations and a datasheet entry would let VinDr metrics
+    appear in results/ with no data provenance behind them.
+    """
 
     config = yaml.safe_load(Path("configs/grounding_vindr.yaml").read_text(encoding="utf-8"))
-    project = config["project"]
-    gate = config["phase_gate"]
 
-    assert project["status"] == "deferred_future_work"
-    assert project["active_dependency"] is False
-    assert gate["phase4_entry_status"] == "deferred_not_phase4_gate"
-    assert gate["require_real_localization_before_phase4"] is False
-    assert gate["synthetic_smoke_is_blocking_for_phase4"] is True
-    assert gate["accepted_real_localization_datasets"] == ["vindr-cxr"]
+    assert config["project"]["status"] == "deferred_future_work"
+    assert config["project"]["active_dependency"] is False
+    assert config["status"]["active"] is False
+    assert not Path(config["localization"]["outputs"]["metrics_json"]).exists()

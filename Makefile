@@ -13,7 +13,7 @@ prepare-vindr:
 	$(PYTHON) scripts/prepare_vindr.py
 
 prepare-rsna:
-	$(PYTHON) scripts/prepare_rsna.py
+	$(PYTHON) scripts/prepare_rsna.py --write-manifest results/rsna_manifest.csv
 
 train:
 	$(PYTHON) scripts/train_classifier.py --config configs/baseline_nih.yaml

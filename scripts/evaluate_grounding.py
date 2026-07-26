@@ -22,6 +22,7 @@ from medguard.data.rsna import RSNAPneumoniaDataset, dataset_available, read_rsn
 from medguard.eval.localization_metrics import (
     box_iou,
     cam_to_bbox,
+    cam_to_boxes,
     heatmap_border_fraction,
     heatmap_peak_in_border,
     mean_average_precision_at_iou,
@@ -40,6 +41,14 @@ def main(argv: list[str] | None = None) -> int:
 
     args = _parse_args(argv)
     config = yaml.safe_load(args.config.read_text(encoding="utf-8"))
+    if args.output is not None:
+        config["localization"]["outputs"]["metrics_json"] = str(args.output)
+    if args.overlay_dir is not None:
+        config["localization"]["outputs"]["overlay_dir"] = str(args.overlay_dir)
+    if args.cam_threshold is not None:
+        config.setdefault("gradcam", {})["cam_threshold"] = args.cam_threshold
+    if args.split is not None:
+        config.setdefault("split", {})["eval"] = args.split
     dataset_name = str(config.get("data", {}).get("dataset", ""))
     if dataset_name != "rsna-pneumonia-detection":
         raise RuntimeError("evaluate_grounding.py currently supports configs/grounding_rsna.yaml.")
@@ -63,6 +72,8 @@ def main(argv: list[str] | None = None) -> int:
             checkpoint_path=args.checkpoint,
             max_samples=args.max_samples,
             overlay_count=args.overlay_count,
+            box_extraction=args.box_extraction,
+            min_box_area_fraction=args.min_box_area_fraction,
         )
 
     output_path = Path(config["localization"]["outputs"]["metrics_json"])
@@ -81,8 +92,19 @@ def evaluate_rsna_grounding(
     checkpoint_path: Path,
     max_samples: int | None,
     overlay_count: int | None,
+    box_extraction: str = "single",
+    min_box_area_fraction: float = 0.0,
 ) -> dict[str, Any]:
-    """Evaluate Grad-CAM localization on RSNA images."""
+    """Evaluate Grad-CAM localization on RSNA images.
+
+    ``box_extraction`` selects how thresholded CAM support becomes boxes:
+    ``single`` keeps the historical one-box-per-image extent, ``multi`` emits one
+    box per connected component. The two differ only when the support is
+    disconnected, which is what the ablation measures.
+    """
+
+    if box_extraction not in {"single", "multi"}:
+        raise ValueError("box_extraction must be 'single' or 'multi'.")
 
     localization_cfg = config.get("localization", {})
     evaluation_cfg = localization_cfg.get("evaluation", {})
@@ -171,7 +193,17 @@ def evaluate_rsna_grounding(
             )
             continue
 
-        pred_box = cam_to_bbox(heatmap, threshold=cam_threshold)
+        if box_extraction == "multi":
+            pred_boxes, box_scores = cam_to_boxes(
+                heatmap,
+                threshold=cam_threshold,
+                min_area_fraction=min_box_area_fraction,
+            )
+        else:
+            single_box = cam_to_bbox(heatmap, threshold=cam_threshold)
+            pred_boxes = [single_box] if single_box is not None else []
+            box_scores = [1.0] if single_box is not None else []
+        pred_box = pred_boxes[0] if pred_boxes else None
         if pred_box is None:
             skipped_no_cam_box += 1
             if target == 1:
@@ -186,19 +218,23 @@ def evaluate_rsna_grounding(
             )
             continue
 
-        pred_records.append(
-            {
-                "image_id": image_id,
-                "class_name": "Lung Opacity",
-                "bbox": pred_box,
-                "score": confidence,
-            }
-        )
+        top_score = max(box_scores)
+        for box, box_score in zip(pred_boxes, box_scores, strict=True):
+            pred_records.append(
+                {
+                    "image_id": image_id,
+                    "class_name": "Lung Opacity",
+                    "bbox": box,
+                    "score": confidence * (box_score / top_score),
+                }
+            )
         if gt_boxes:
             positive_cases_with_cam += 1
             heatmaps.append(heatmap)
             heatmap_gt_boxes.append(gt_boxes)
-            best_ious.append(max(box_iou(pred_box, gt_box) for gt_box in gt_boxes))
+            best_ious.append(
+                max(box_iou(box, gt_box) for box in pred_boxes for gt_box in gt_boxes)
+            )
         border_fraction = heatmap_border_fraction(heatmap, border_fraction=border_artifact_fraction)
         peak_in_border = heatmap_peak_in_border(heatmap, border_fraction=border_artifact_fraction)
         per_sample.append(
@@ -207,6 +243,7 @@ def evaluate_rsna_grounding(
                 "confidence": confidence,
                 "generated": True,
                 "pred_box": pred_box,
+                "pred_box_count": len(pred_boxes),
                 "gt_box_count": len(gt_boxes),
                 "heatmap_border_fraction": border_fraction,
                 "heatmap_peak_in_border": peak_in_border,
@@ -269,13 +306,17 @@ def evaluate_rsna_grounding(
         "n_dataset_records": len(dataset),
         "n_evaluated": len(samples),
         "n_ground_truth_boxes": len(gt_records),
-        "n_gradcam_generated": len(pred_records),
+        # one CAM per image, but multi-box extraction can emit several boxes from it
+        "n_gradcam_generated": sum(1 for item in per_sample if item["generated"]),
+        "n_predicted_boxes": len(pred_records),
         "n_classification_positive": int(np.sum(y_true)),
         "n_classification_negative": int(len(y_true) - np.sum(y_true)),
         "skipped_low_confidence": skipped_low_confidence,
         "skipped_no_cam_box": skipped_no_cam_box,
         "confidence_gate": confidence_gate,
         "cam_threshold": cam_threshold,
+        "box_extraction": box_extraction,
+        "min_box_area_fraction": min_box_area_fraction,
         "classification": classification,
         "localization": localization_metrics,
         "metrics": {
@@ -301,6 +342,44 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser.add_argument("--checkpoint", type=Path, default=Path("checkpoints/baseline_nih_best.pt"))
     parser.add_argument("--max-samples", type=int)
     parser.add_argument("--overlay-count", type=int)
+    parser.add_argument(
+        "--output",
+        type=Path,
+        help="Override the metrics JSON path from the config (use for ablation runs).",
+    )
+    parser.add_argument(
+        "--overlay-dir",
+        type=Path,
+        help="Override the overlay directory. Existing rsna_*.png there are deleted first.",
+    )
+    parser.add_argument(
+        "--box-extraction",
+        choices=("single", "multi"),
+        default="single",
+        help="single: one box spanning all CAM support. multi: one box per connected component.",
+    )
+    parser.add_argument(
+        "--split",
+        choices=("train", "val", "test"),
+        help=(
+            "Override split.eval. Tune on val; touch test only to report a value that "
+            "was already chosen elsewhere."
+        ),
+    )
+    parser.add_argument(
+        "--cam-threshold",
+        type=float,
+        help=(
+            "Override gradcam.cam_threshold. Sweep this on the validation split only; "
+            "selecting it on the evaluated split would be test-set tuning."
+        ),
+    )
+    parser.add_argument(
+        "--min-box-area-fraction",
+        type=float,
+        default=0.0,
+        help="Drop connected components smaller than this fraction of the heatmap (multi only).",
+    )
     return parser.parse_args(argv)
 
 

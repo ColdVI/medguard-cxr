@@ -9,6 +9,7 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from typing import Any
 
+import cv2
 import numpy as np
 
 PHASE = "3"
@@ -49,10 +50,14 @@ def cam_to_bbox(
     threshold: float = 0.6,
     min_area_pixels: int = 1,
 ) -> tuple[float, float, float, float] | None:
-    """Convert a CAM heatmap into a normalized ``xyxy`` bounding box.
+    """Convert a CAM heatmap into a single normalized ``xyxy`` bounding box.
 
-    Pixels greater than or equal to ``threshold * max(heatmap)`` are retained.
-    The return value is ``None`` when no connected support exceeds the threshold.
+    Pixels greater than or equal to ``threshold * max(heatmap)`` are retained and
+    the returned box is the extent of *all* retained pixels. When the retained
+    support is disconnected the box therefore also covers the gaps between
+    components: two separated blobs yield one box spanning both. Use
+    ``cam_to_boxes`` for per-component boxes; this function is kept for the
+    single-box ablation. Returns ``None`` when no pixel exceeds the threshold.
     """
 
     heatmap_2d = _validate_heatmap(heatmap)
@@ -76,6 +81,70 @@ def cam_to_bbox(
     x_max = float((xs.max() + 1) / width)
     y_max = float((ys.max() + 1) / height)
     return _clip_box((x_min, y_min, x_max, y_max))
+
+
+def cam_to_boxes(
+    heatmap: np.ndarray,
+    threshold: float = 0.6,
+    min_area_fraction: float = 0.0,
+    max_boxes: int | None = None,
+) -> tuple[list[tuple[float, float, float, float]], list[float]]:
+    """Convert a CAM heatmap into one normalized ``xyxy`` box per connected component.
+
+    Pixels greater than or equal to ``threshold * max(heatmap)`` are retained and
+    grouped into 8-connected components; each component contributes one box. This
+    is the standard weakly-supervised extraction and, unlike ``cam_to_bbox``, it
+    can represent a finding that appears in more than one place — bilateral lung
+    opacity being the case that matters here.
+
+    Components covering less than ``min_area_fraction`` of the heatmap are dropped.
+    Boxes are returned in descending score order, where a box's score is the peak
+    CAM value inside its component, so callers can pass them straight to
+    ``average_precision_at_iou``. Returns empty lists when nothing survives.
+    """
+
+    heatmap_2d = _validate_heatmap(heatmap)
+    if not 0.0 <= threshold <= 1.0:
+        raise ValueError("threshold must be in [0, 1].")
+    if not 0.0 <= min_area_fraction <= 1.0:
+        raise ValueError("min_area_fraction must be in [0, 1].")
+    if max_boxes is not None and max_boxes < 1:
+        raise ValueError("max_boxes must be >= 1 when provided.")
+
+    max_value = float(np.nanmax(heatmap_2d))
+    if not np.isfinite(max_value) or max_value <= 0.0:
+        return [], []
+
+    height, width = heatmap_2d.shape
+    mask = np.nan_to_num(heatmap_2d, nan=-np.inf) >= (threshold * max_value)
+    if not mask.any():
+        return [], []
+
+    count, labels, stats, _ = cv2.connectedComponentsWithStats(
+        mask.astype(np.uint8), connectivity=8
+    )
+    min_pixels = min_area_fraction * height * width
+
+    scored: list[tuple[float, tuple[float, float, float, float]]] = []
+    for component in range(1, count):
+        left, top, box_width, box_height, area = stats[component]
+        if area < min_pixels:
+            continue
+        box = _clip_box(
+            (
+                left / width,
+                top / height,
+                (left + box_width) / width,
+                (top + box_height) / height,
+            )
+        )
+        score = float(np.nanmax(heatmap_2d[labels == component]))
+        scored.append((score, box))
+
+    scored.sort(key=lambda item: -item[0])
+    if max_boxes is not None:
+        scored = scored[:max_boxes]
+    return [box for _, box in scored], [score for score, _ in scored]
 
 
 def pointing_game_hit(
