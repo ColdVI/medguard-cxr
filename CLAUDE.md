@@ -119,15 +119,6 @@ foundational, all DOI/venue-verified), and all 11 new entries are `\cite`'d in
 `report/sections/`. 2 pre-existing entries (`frenkel2021classbased`,
 `li2022noisetransition`) remain `% TODO: verify` pending owner check.
 
-**P0 — add explicit research questions to `report/sections/01_introduction.tex`.**
-Suggested framing:
-- RQ1: does per-class post-hoc calibration meaningfully reduce ECE under multi-label
-  imbalance with noisy labels? (Answer: no — report as a negative result.)
-- RQ2: how far do point-based and IoU-based grounding metrics diverge under
-  cross-dataset transfer (NIH → RSNA)?
-- RQ3: does a classifier-consistency gate suppress hallucination in a generative
-  presentation layer?
-
 **P0 — add a Related Work section.** The report currently has none.
 
 **P1 — run isotonic and Platt calibration** (code already exists) and produce a
