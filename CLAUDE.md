@@ -129,16 +129,29 @@ foundational, all DOI/venue-verified), and all 11 new entries are `\cite`'d in
 
 **P1 — run isotonic and Platt calibration** (code already exists) and produce a
 three-way comparison table against temperature scaling. Discuss the flexibility vs.
-overfitting tradeoff given low positive counts in rare classes. **Blocked in the current
-local environment:** `data/nih` is not present locally (`dataset_available()` in
-`src/medguard/data/nih.py` returns `False`), so `scripts/calibrate.py` would fall back
-to `smoke_no_dataset` mode rather than fitting real calibrators on NIH val/test logits.
-Needs to be run wherever the NIH dataset is available (Colab, per the existing
-checkpoint's training provenance), not run as smoke output here.
+overfitting tradeoff given low positive counts in rare classes.
 
 **P1 — bootstrap confidence intervals** for AUROC, AUPRC, and ECE. Point estimates
-alone are weak for an academic write-up. **Same blocker as above:** no NIH data or
-cached per-sample test predictions exist locally to resample.
+alone are weak for an academic write-up.
+
+**Both P1 items above are blocked in the current local environment** (`data/nih` is not
+present; `dataset_available()` in `src/medguard/data/nih.py` returns `False`, so
+`scripts/calibrate.py` would fall back to `smoke_no_dataset` output rather than fitting
+real calibrators or resampling real predictions) — **and both unblock permanently with
+one pair of runs on a machine that has the NIH data** (Colab, per the checkpoint's
+training provenance):
+
+```
+python scripts/evaluate.py --split val  --per-sample-output results/nih_val_logits.csv
+python scripts/evaluate.py --split test --per-sample-output results/nih_test_logits.csv
+```
+
+Each CSV holds per-sample raw logits, labels, and image IDs (`write_per_sample_logits`,
+added in `609e831`). Probabilities are a pure function of logits, so isotonic/Platt
+fitting (on val) and evaluation (on test), and bootstrap resampling over test
+predictions, are then pure post-processing over two small CSVs (25,596 rows x 14
+classes each, a few MB) — no GPU, no dataset, and no retraining needed afterward. Commit
+the two CSVs once produced and both P1 items become runnable anywhere.
 
 **P2 — optional**: run VLM zero-shot on GPU (Colab) against the rule-based baseline.
 Only if the environment is available; otherwise leave clearly marked as not executed.
