@@ -2,6 +2,12 @@
 
 **Safety disclaimer:** MEDGUARD-CXR is for research and engineering evaluation only. It is not a clinical diagnostic tool, must not be used for patient care, and must not be presented as providing medical advice.
 
+## Academic V2 implementation status
+
+Academic V2 work has started in a separate namespace without changing the v1 artifacts documented below. The initial executable slice includes the canonical label ontology, dataset/model registries, patient-disjoint manifest validation, restricted-data write guards, DICOM preprocessing, deterministic run state, a complete compute-aware experiment configuration, and the resumable run-all notebook at `notebooks/00_medguard_academic_v2_run_all.ipynb`.
+
+`make academic-v2-smoke` validates the orchestration contracts without emitting synthetic performance metrics or a research `DONE.json`. Real Academic V2 training stages are still pending implementation/execution and must not be described as completed. Dataset/legal prerequisites are documented in `docs/academic_v2_prerequisites.md`.
+
 ## Current Public Status
 
 Status classification: **D. trained_evaluated_calibrated_grounded (real artifacts present)**.

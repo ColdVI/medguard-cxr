@@ -1,0 +1,6 @@
+schema_version: academic_v2.0
+model_id: eva_x_s
+architecture: eva_x_s
+modes: [linear_probe, full_finetune]
+external_access_required: true
+required_provenance: [source_revision, model_identifier, license, sha256]

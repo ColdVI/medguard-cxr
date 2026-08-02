@@ -1,4 +1,4 @@
-.PHONY: install prepare-nih prepare-vindr prepare-rsna train eval eval-grounding-rsna calibrate vqa-dataset train-vlm eval-vlm-zero-shot eval-vlm-lora eval-vlm-compare serve-api test demo lint
+.PHONY: install prepare-nih prepare-vindr prepare-rsna train eval eval-grounding-rsna calibrate vqa-dataset train-vlm eval-vlm-zero-shot eval-vlm-lora eval-vlm-compare academic-v2-smoke serve-api test demo lint
 
 PYTHON ?= $(if $(wildcard .venv/bin/python),.venv/bin/python,python3)
 PIP ?= $(PYTHON) -m pip
@@ -41,6 +41,10 @@ eval-vlm-lora:
 
 eval-vlm-compare:
 	$(PYTHON) scripts/evaluate_vlm.py --config configs/vlm_lora.yaml --backend compare
+
+academic-v2-smoke:
+	$(PYTHON) scripts/run_academic_v2.py --config configs/programs/academic_v2_full.yaml --workspace /tmp/medguard-academic-v2-smoke --profile synthetic --resume
+	$(PYTHON) scripts/finalize_academic_v2.py --workspace /tmp/medguard-academic-v2-smoke --smoke
 
 serve-api:
 	$(PYTHON) -m uvicorn medguard.api.app:app --host 127.0.0.1 --port 8080

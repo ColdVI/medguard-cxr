@@ -1,0 +1,6 @@
+schema_version: academic_v2.0
+model_id: efficientnet_v2_s
+architecture: efficientnet_v2_s
+num_classes: 14
+pretrained: imagenet
+input_resolutions: [224, 384]

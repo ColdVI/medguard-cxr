@@ -1,0 +1,5 @@
+# Academic V2 core environment. Hash verification is performed by the notebook marker.
+-e .[dev]
+pyarrow==19.0.0
+nbclient==0.10.2
+nbformat==5.10.4

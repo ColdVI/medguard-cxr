@@ -1,0 +1,6 @@
+schema_version: academic_v2.0
+model_id: cxr_foundation
+architecture: frozen_embedding
+probes: [logistic_regression, mlp_2layer]
+external_access_required: true
+blocked_status: blocked_external_access

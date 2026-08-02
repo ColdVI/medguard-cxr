@@ -1,0 +1,62 @@
+version: academic_v2.0
+canonical_labels:
+  - Atelectasis
+  - Cardiomegaly
+  - Consolidation
+  - Edema
+  - Pleural Effusion
+  - Pneumonia
+  - Pneumothorax
+  - No Finding
+  - Lung Opacity
+  - Lung Lesion
+  - Pleural Other
+  - Enlarged Cardiomediastinum
+
+# Primary metrics accept only exact, high-confidence mappings enabled below.
+# Approximate relationships remain explicit and excluded from the primary table.
+mappings:
+  - {canonical_label: Atelectasis, source_dataset: nih, source_label: Atelectasis, mapping_type: exact, mapping_confidence: high, include_in_cross_dataset_metrics: true, notes: Direct finding label.}
+  - {canonical_label: Cardiomegaly, source_dataset: nih, source_label: Cardiomegaly, mapping_type: exact, mapping_confidence: high, include_in_cross_dataset_metrics: true, notes: Direct finding label.}
+  - {canonical_label: Consolidation, source_dataset: nih, source_label: Consolidation, mapping_type: exact, mapping_confidence: high, include_in_cross_dataset_metrics: true, notes: Direct finding label.}
+  - {canonical_label: Edema, source_dataset: nih, source_label: Edema, mapping_type: exact, mapping_confidence: high, include_in_cross_dataset_metrics: true, notes: Direct finding label.}
+  - {canonical_label: Pleural Effusion, source_dataset: nih, source_label: Effusion, mapping_type: exact, mapping_confidence: high, include_in_cross_dataset_metrics: true, notes: NIH uses the shorter Effusion label.}
+  - {canonical_label: Pneumonia, source_dataset: nih, source_label: Pneumonia, mapping_type: exact, mapping_confidence: high, include_in_cross_dataset_metrics: true, notes: Direct finding label.}
+  - {canonical_label: Pneumothorax, source_dataset: nih, source_label: Pneumothorax, mapping_type: exact, mapping_confidence: high, include_in_cross_dataset_metrics: true, notes: Direct finding label.}
+  - {canonical_label: No Finding, source_dataset: nih, source_label: No Finding, mapping_type: exact, mapping_confidence: high, include_in_cross_dataset_metrics: true, notes: Explicit source label.}
+  - {canonical_label: Lung Opacity, source_dataset: nih, source_label: Infiltration, mapping_type: approximate, mapping_confidence: low, include_in_cross_dataset_metrics: false, notes: Infiltration is not silently equated with Lung Opacity.}
+  - {canonical_label: Lung Lesion, source_dataset: nih, source_label: Mass, mapping_type: approximate, mapping_confidence: low, include_in_cross_dataset_metrics: false, notes: Mass is not silently equated with Lung Lesion.}
+  - {canonical_label: Pleural Other, source_dataset: nih, source_label: Pleural_Thickening, mapping_type: narrower, mapping_confidence: medium, include_in_cross_dataset_metrics: false, notes: Pleural Thickening is narrower than Pleural Other.}
+
+  - {canonical_label: Atelectasis, source_dataset: chexpert, source_label: Atelectasis, mapping_type: exact, mapping_confidence: high, include_in_cross_dataset_metrics: true, notes: Direct finding label.}
+  - {canonical_label: Cardiomegaly, source_dataset: chexpert, source_label: Cardiomegaly, mapping_type: exact, mapping_confidence: high, include_in_cross_dataset_metrics: true, notes: Direct finding label.}
+  - {canonical_label: Consolidation, source_dataset: chexpert, source_label: Consolidation, mapping_type: exact, mapping_confidence: high, include_in_cross_dataset_metrics: true, notes: Direct finding label.}
+  - {canonical_label: Edema, source_dataset: chexpert, source_label: Edema, mapping_type: exact, mapping_confidence: high, include_in_cross_dataset_metrics: true, notes: Direct finding label.}
+  - {canonical_label: Pleural Effusion, source_dataset: chexpert, source_label: Pleural Effusion, mapping_type: exact, mapping_confidence: high, include_in_cross_dataset_metrics: true, notes: Direct finding label.}
+  - {canonical_label: Pneumonia, source_dataset: chexpert, source_label: Pneumonia, mapping_type: exact, mapping_confidence: high, include_in_cross_dataset_metrics: true, notes: Direct finding label.}
+  - {canonical_label: Pneumothorax, source_dataset: chexpert, source_label: Pneumothorax, mapping_type: exact, mapping_confidence: high, include_in_cross_dataset_metrics: true, notes: Direct finding label.}
+  - {canonical_label: No Finding, source_dataset: chexpert, source_label: No Finding, mapping_type: exact, mapping_confidence: high, include_in_cross_dataset_metrics: true, notes: Direct finding label.}
+  - {canonical_label: Enlarged Cardiomediastinum, source_dataset: chexpert, source_label: Enlarged Cardiomediastinum, mapping_type: exact, mapping_confidence: high, include_in_cross_dataset_metrics: true, notes: Not interchangeable with Cardiomegaly.}
+
+  - {canonical_label: Atelectasis, source_dataset: mimic, source_label: Atelectasis, mapping_type: exact, mapping_confidence: high, include_in_cross_dataset_metrics: true, notes: CheXpert-labeler-derived label.}
+  - {canonical_label: Cardiomegaly, source_dataset: mimic, source_label: Cardiomegaly, mapping_type: exact, mapping_confidence: high, include_in_cross_dataset_metrics: true, notes: CheXpert-labeler-derived label.}
+  - {canonical_label: Consolidation, source_dataset: mimic, source_label: Consolidation, mapping_type: exact, mapping_confidence: high, include_in_cross_dataset_metrics: true, notes: CheXpert-labeler-derived label.}
+  - {canonical_label: Edema, source_dataset: mimic, source_label: Edema, mapping_type: exact, mapping_confidence: high, include_in_cross_dataset_metrics: true, notes: CheXpert-labeler-derived label.}
+  - {canonical_label: Pleural Effusion, source_dataset: mimic, source_label: Pleural Effusion, mapping_type: exact, mapping_confidence: high, include_in_cross_dataset_metrics: true, notes: CheXpert-labeler-derived label.}
+  - {canonical_label: Pneumonia, source_dataset: mimic, source_label: Pneumonia, mapping_type: exact, mapping_confidence: high, include_in_cross_dataset_metrics: true, notes: CheXpert-labeler-derived label.}
+  - {canonical_label: Pneumothorax, source_dataset: mimic, source_label: Pneumothorax, mapping_type: exact, mapping_confidence: high, include_in_cross_dataset_metrics: true, notes: CheXpert-labeler-derived label.}
+  - {canonical_label: No Finding, source_dataset: mimic, source_label: No Finding, mapping_type: exact, mapping_confidence: high, include_in_cross_dataset_metrics: true, notes: CheXpert-labeler-derived label.}
+
+  - {canonical_label: Atelectasis, source_dataset: vindr, source_label: Atelectasis, mapping_type: exact, mapping_confidence: high, include_in_cross_dataset_metrics: true, notes: Direct radiologist label.}
+  - {canonical_label: Cardiomegaly, source_dataset: vindr, source_label: Cardiomegaly, mapping_type: exact, mapping_confidence: high, include_in_cross_dataset_metrics: true, notes: Direct radiologist label.}
+  - {canonical_label: Consolidation, source_dataset: vindr, source_label: Consolidation, mapping_type: exact, mapping_confidence: high, include_in_cross_dataset_metrics: true, notes: Direct radiologist label.}
+  - {canonical_label: Edema, source_dataset: vindr, source_label: Edema, mapping_type: exact, mapping_confidence: high, include_in_cross_dataset_metrics: true, notes: Direct radiologist label.}
+  - {canonical_label: Pleural Effusion, source_dataset: vindr, source_label: Pleural effusion, mapping_type: exact, mapping_confidence: high, include_in_cross_dataset_metrics: true, notes: Capitalization normalized only.}
+  - {canonical_label: Pneumothorax, source_dataset: vindr, source_label: Pneumothorax, mapping_type: exact, mapping_confidence: high, include_in_cross_dataset_metrics: true, notes: Direct radiologist label.}
+  - {canonical_label: No Finding, source_dataset: vindr, source_label: No finding, mapping_type: exact, mapping_confidence: high, include_in_cross_dataset_metrics: true, notes: Explicit source label.}
+  - {canonical_label: Pneumonia, source_dataset: vindr, source_label: Pneumonia, mapping_type: unsupported, mapping_confidence: low, include_in_cross_dataset_metrics: false, notes: VinDr box taxonomy has no direct Pneumonia label.}
+  - {canonical_label: Lung Lesion, source_dataset: vindr, source_label: Nodule/Mass, mapping_type: broader, mapping_confidence: medium, include_in_cross_dataset_metrics: false, notes: Combined label is not silently equated with Mass or Lung Lesion.}
+  - {canonical_label: Pleural Other, source_dataset: vindr, source_label: Pleural thickening, mapping_type: narrower, mapping_confidence: medium, include_in_cross_dataset_metrics: false, notes: Pleural Thickening is not Pleural Other.}
+
+  - {canonical_label: Lung Opacity, source_dataset: rsna, source_label: Lung Opacity, mapping_type: exact, mapping_confidence: high, include_in_cross_dataset_metrics: true, notes: RSNA bounding-box target.}
+  - {canonical_label: Pneumonia, source_dataset: rsna, source_label: Lung Opacity, mapping_type: approximate, mapping_confidence: low, include_in_cross_dataset_metrics: false, notes: Pneumonia is not silently equated with Lung Opacity.}

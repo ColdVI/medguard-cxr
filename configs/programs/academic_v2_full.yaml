@@ -1,0 +1,178 @@
+schema_version: academic_v2.0
+program_id: medguard_cxr_academic_v2
+research_only: true
+ontology: configs/ontology/cxr_labels.yaml
+canonical_workspace: /content/drive/MyDrive/medguard-cxr-academic-v2
+
+statuses:
+  - pending
+  - running
+  - completed
+  - failed
+  - blocked_external_access
+  - skipped_by_selection
+  - skipped_by_design
+
+datasets:
+  nih: {restricted: false, frontal_only_primary: true, tasks: [classification, calibration]}
+  chexpert: {restricted: true, frontal_only_primary: true, tasks: [classification]}
+  mimic: {restricted: true, frontal_only_primary: true, tasks: [classification, vlm]}
+  vindr: {restricted: true, frontal_only_primary: true, tasks: [classification, detection]}
+  rsna: {restricted: true, frontal_only_primary: true, tasks: [weak_localization, detection]}
+
+selection_contract:
+  fit_split: train
+  selection_split: val
+  final_split: test
+  checkpoint_primary: macro_auprc
+  checkpoint_tiebreaker: macro_auroc
+  test_reselection_forbidden: true
+  patient_disjoint_required: true
+  final_seeds: [2026, 2027, 2028]
+
+training:
+  optimizer: AdamW
+  max_epochs: 30
+  head_warmup_epochs: 2
+  scheduler: cosine_with_warmup
+  amp: auto
+  gradient_accumulation: auto
+  gradient_clipping: 1.0
+  early_stopping: true
+  losses: [unweighted_bce, weighted_bce, clipped_weighted_bce, asymmetric_loss]
+  max_pos_weight: 10.0
+  prediction_artifacts: [predictions_val.parquet, predictions_test.parquet]
+  augmentations:
+    horizontal_flip: configurable
+    max_rotation_degrees: 7
+    small_translation: true
+    small_scale: true
+    limited_brightness_contrast: true
+    gaussian_noise: true
+    vertical_flip: false
+    aggressive_crop: false
+
+calibration:
+  fit_split: val
+  report_split: test
+  methods: [uncalibrated, temperature_scaling, platt_scaling, isotonic_regression]
+  bootstrap: {resamples: 2000, confidence: 0.95, seed: 2026, cluster: patient_id}
+
+resource_profiles:
+  t4: {min_vram_gb: 0, resolution: 224, vlm: qwen3_vl_2b, detector_batch_size: 1}
+  l4: {min_vram_gb: 22, resolution: 384, vlm: qwen3_vl_4b, detector_batch_size: 2}
+  a100: {min_vram_gb: 40, resolution: 384, vlm: qwen3_vl_4b, detector_batch_size: 4}
+
+# Each stage declares its own bounded grid. Later stages use selection-dependent
+# placeholders that the executor must resolve only from validation artifacts.
+stages:
+  - id: E0
+    task: v1_validation
+    selection: preserve_existing_artifacts
+    explicit_grids:
+      - {dataset: legacy, model: densenet121_v1, loss: weighted_bce, resolution: 224, seed: 2026}
+
+  - id: E1
+    task: backbone_screening
+    selection: top_two_by_val_macro_auprc_then_auroc_ece_compute
+    explicit_grids:
+      - dataset: nih
+        model: [densenet121_modern, efficientnet_v2_s, convnext_tiny, swin_tiny, eva_x_s, cxr_foundation]
+        loss: weighted_bce
+        resolution: 224
+        seed: 2026
+
+  - id: E2
+    task: loss_ablation
+    depends_on: E1
+    explicit_grids:
+      - dataset: nih
+        model: selection_dependent
+        loss: [unweighted_bce, weighted_bce, clipped_weighted_bce, asymmetric_loss]
+        resolution: 224
+        seed: 2026
+
+  - id: E3
+    task: resolution_ablation
+    depends_on: E2
+    explicit_grids:
+      - dataset: nih
+        model: selection_dependent
+        loss: selection_dependent
+        resolution: [224, 384]
+        seed: 2026
+
+  - id: E4
+    task: dataset_specific_finetune
+    depends_on: E3
+    explicit_grids:
+      - dataset: [nih, chexpert, mimic, vindr]
+        model: selection_dependent
+        loss: selection_dependent
+        resolution: selection_dependent
+        seed: [2026, 2027, 2028]
+
+  - id: E5
+    task: pooled_training
+    depends_on: E4
+    explicit_grids:
+      - dataset: pooled
+        model: [shared_common_head, shared_plus_auxiliary_heads]
+        loss: masked_selection_dependent
+        resolution: selection_dependent
+        seed: [2026, 2027, 2028]
+
+  - id: E6
+    task: leave_one_dataset_out
+    depends_on: E5
+    explicit_grids:
+      - dataset: [nih, chexpert, mimic, vindr]
+        model: selection_dependent
+        loss: masked_selection_dependent
+        resolution: selection_dependent
+        seed: [2026, 2027, 2028]
+
+  - id: E7
+    task: few_shot_adaptation
+    depends_on: E6
+    label_fractions: [0.01, 0.05, 0.10, 1.0]
+    explicit_grids:
+      - dataset: [chexpert, mimic, vindr]
+        model: [eva_x_s, selection_dependent]
+        loss: selection_dependent
+        resolution: selection_dependent
+        seed: 2026
+
+  - id: L1
+    task: weak_localization
+    depends_on: E4
+    methods: [gradcam, gradcam_plus_plus]
+    box_extraction: [single, multi]
+    threshold_selection_split: val
+    explicit_grids:
+      - dataset: [rsna, vindr]
+        model: selection_dependent
+        loss: none
+        resolution: selection_dependent
+        seed: 2026
+
+  - id: L2
+    task: supervised_detection
+    depends_on: L1
+    explicit_grids:
+      - dataset: [rsna, vindr]
+        model: [faster_rcnn_resnet50_fpn, retinanet_resnet50_fpn]
+        loss: detector_native
+        resolution: 384
+        seed: [2026, 2027, 2028]
+
+  - id: V1
+    task: vlm_evaluation
+    depends_on: [E4, L2]
+    backends: [rule_based, qwen25_legacy_zero_shot, qwen3_zero_shot, qwen3_qlora, chexagent_zero_shot]
+    explicit_grids:
+      - dataset: pooled
+        model: [rule_based, qwen25_legacy, qwen3_primary, chexagent]
+        loss: presentation_layer_only
+        resolution: 384
+        seed: 2026

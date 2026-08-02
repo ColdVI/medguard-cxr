@@ -14,6 +14,7 @@ PACKAGE_MODULES = [
 
 IMPLEMENTED_MODULES = [
     "medguard.data.nih",
+    "medguard.data.dicom",
     "medguard.data.rsna",
     "medguard.data.transforms",
     "medguard.data.vindr",
@@ -35,7 +36,6 @@ IMPLEMENTED_MODULES = [
 ]
 
 SKELETON_MODULES = [
-    "medguard.data.dicom",
     "medguard.models.grounding",
     "medguard.models.vlm",
     "medguard.eval.classification_metrics",
